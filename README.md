@@ -187,7 +187,7 @@ exports['f5_safezones']:GetPlayersInSpecificZone(zoneName)
 
 <br />
 
-Contributions are welcome! Here's how you can help:
+This project is open source and we'd love your help to make it better.
 
 - **Report bugs** by opening an [issue](https://github.com/F5StudioFiveM/f5_safezones/issues)
 - **Suggest features** or improvements via [issues](https://github.com/F5StudioFiveM/f5_safezones/issues) or [Discord](https://discord.gg/f5studio)
