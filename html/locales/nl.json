@@ -183,6 +183,7 @@
     "select_blip_color": "Blip Kleur Selecteren",
     "select_outline_color": "Omtrek Kleur Selecteren",
     "select_stroke_color": "Lijnkleur Selecteren",
+    "select_marker_color": "Selecteer Markerkleur",
     "search_blips": "Sprites zoeken...",
     "add_roof": "Dak Toevoegen",
     "add_roof_desc": "Een plafond tekenen boven de zonemarker",

@@ -759,7 +759,14 @@ function initializeElements() {
         'modalZonePlayers', 'modalPlayersList', 'teleportToZone', 'deleteZone', 'cloneZoneAttributes',
         'closeModal', 'notifications', 'markerConfigSection', 'confirmModal',
         'confirmTitle', 'confirmMessage', 'confirmOk', 'confirmCancel',
-        'markerColor', 'markerColorValue', 'markerAlpha', 'markerAlphaValue',
+        'markerColor', 'markerColorBtn', 'markerColorPreview', 'markerColorHex', 'markerColorNative',
+        'markerColorModal', 'markerColorModalClose',
+        'markerPickerSwatch', 'markerHexDisplay', 'markerRgbDisplay', 'markerNativeDisplay',
+        'markerPickerNative', 'markerPickerHexInput',
+        'markerSliderR', 'markerSliderG', 'markerSliderB',
+        'markerValueR', 'markerValueG', 'markerValueB',
+        'markerPickerCancel', 'markerPickerConfirm',
+        'markerAlpha', 'markerAlphaValue',
         'markerHeight', 'markerHeightValue', 'pulseSpeed', 'pulseSpeedValue',
         'bobHeight', 'bobHeightValue', 'rotationSpeed', 'rotationSpeedValue',
         'addPolygonPoint', 'polygonPointInputs', 'minZ', 'maxZ',
@@ -1045,6 +1052,14 @@ function initializeEventListeners() {
             const spriteModalOpen = SZ.elements.blipSpriteModal?.classList.contains('active');
             const outlineColorModalOpen = SZ.elements.outlineColorModal?.classList.contains('active');
             const strokeColorModalOpen = SZ.elements.strokeColorModal?.classList.contains('active');
+            const markerColorModalOpen = SZ.elements.markerColorModal?.classList.contains('active');
+
+            if (markerColorModalOpen) {
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                markerColorPicker.cancel();
+                return;
+            }
 
             if (strokeColorModalOpen) {
                 e.stopImmediatePropagation();
@@ -1325,17 +1340,7 @@ function initializeEventListeners() {
         }
     });
 
-    SZ.elements.markerColor.addEventListener('input', (e) => {
-        SZ.elements.markerColorValue.textContent = e.target.value;
-    });
-
-    document.querySelectorAll('.color-preset').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const color = btn.dataset.color;
-            SZ.elements.markerColor.value = color;
-            SZ.elements.markerColorValue.textContent = color;
-        });
-    });
+    markerColorPicker.setupListeners();
 
     SZ.elements.markerAlpha.addEventListener('input', (e) => {
         SZ.elements.markerAlphaValue.textContent = e.target.value;
@@ -1634,6 +1639,20 @@ const strokeColorPicker = createColorPicker({
         targetValue: 'strokeColor', targetHex: 'strokeColorHex', targetNative: 'strokeColorNative', targetPreview: 'strokeColorPreview',
         confirmBtn: 'strokePickerConfirm', cancelBtn: 'strokePickerCancel',
         openBtn: 'strokeColorBtn', closeBtn: 'strokeColorModalClose'
+    }
+});
+
+const markerColorPicker = createColorPicker({
+    defaultHex: '#F5A623',
+    elements: {
+        swatch: 'markerPickerSwatch', hexDisplay: 'markerHexDisplay', rgbDisplay: 'markerRgbDisplay',
+        nativeDisplay: 'markerNativeDisplay', nativeInput: 'markerPickerNative', hexInput: 'markerPickerHexInput',
+        sliderR: 'markerSliderR', sliderG: 'markerSliderG', sliderB: 'markerSliderB',
+        valueR: 'markerValueR', valueG: 'markerValueG', valueB: 'markerValueB',
+        modal: 'markerColorModal', initHex: 'markerColorHex',
+        targetValue: 'markerColor', targetHex: 'markerColorHex', targetNative: 'markerColorNative', targetPreview: 'markerColorPreview',
+        confirmBtn: 'markerPickerConfirm', cancelBtn: 'markerPickerCancel',
+        openBtn: 'markerColorBtn', closeBtn: 'markerColorModalClose'
     }
 });
 
@@ -2375,9 +2394,19 @@ function setCircleCreationMode(mode) {
 function showCreateForm(defaultType) {
     const zoneType = defaultType === 'polygon' ? 'polygon' : 'circle';
     Log('ZONE', 'info', `Opening zone creation form (type: ${zoneType})`);
+
+    if (_hideFormTimeout) {
+        clearTimeout(_hideFormTimeout);
+        _hideFormTimeout = null;
+    }
+    _hideFormId++;
+
     SZ.state.isCreatingZone = true;
     SZ.elements.zoneForm.classList.remove('hidden');
     SZ.elements.zoneForm.classList.remove('form-hiding');
+    SZ.elements.zoneForm.style.animation = 'none';
+    SZ.elements.zoneForm.offsetHeight;
+    SZ.elements.zoneForm.style.animation = '';
     SZ.elements.zoneName.focus();
 
     requestAnimationFrame(() => refreshAllSliderFills());
@@ -2418,15 +2447,29 @@ function showCreateForm(defaultType) {
     initializeBlipGrids();
 }
 
+let _hideFormTimeout = null;
+let _hideFormId = 0;
+
 function hideCreateForm() {
     Log('ZONE', 'info', 'Closing zone creation/edit form');
     SZ.state.isCreatingZone = false;
     SZ.state.isEditingZone = false;
     SZ.state.editingZone = null;
 
+    if (_hideFormTimeout) {
+        clearTimeout(_hideFormTimeout);
+        _hideFormTimeout = null;
+    }
+
+    const thisHideId = ++_hideFormId;
+
     SZ.elements.zoneForm.classList.add('form-hiding');
 
+    let finished = false;
     const finishHide = () => {
+        if (finished || thisHideId !== _hideFormId) return;
+        finished = true;
+
         SZ.elements.zoneForm.classList.add('hidden');
         SZ.elements.zoneForm.classList.remove('form-hiding');
 
@@ -2485,7 +2528,8 @@ function hideCreateForm() {
 
     SZ.elements.zoneForm.addEventListener('animationend', finishHide, { once: true });
 
-    setTimeout(() => {
+    _hideFormTimeout = setTimeout(() => {
+        _hideFormTimeout = null;
         if (SZ.elements.zoneForm.classList.contains('form-hiding')) {
             finishHide();
         }
@@ -2828,13 +2872,11 @@ function collectZoneSettings() {
 }
 
 function buildMarkerConfig(type) {
+    const markerHex = (SZ.elements.markerColorHex?.textContent || '#F5A623').trim();
+    const markerRgb = hexToRgb(markerHex) || { r: 245, g: 166, b: 35 };
     return {
         type,
-        color: {
-            r: parseInt(SZ.elements.markerColor.value.substring(1, 3), 16),
-            g: parseInt(SZ.elements.markerColor.value.substring(3, 5), 16),
-            b: parseInt(SZ.elements.markerColor.value.substring(5, 7), 16)
-        },
+        color: markerRgb,
         alpha: parseInt(SZ.elements.markerAlpha.value),
         height: parseFloat(SZ.elements.markerHeight.value),
         bobbing: document.getElementById('markerBobbing')?.checked || false,
@@ -3971,9 +4013,8 @@ function showCreateFormWithClonedData() {
         }
 
         if (mc.color) {
-            const hexColor = `#${('0' + mc.color.r.toString(16)).slice(-2)}${('0' + mc.color.g.toString(16)).slice(-2)}${('0' + mc.color.b.toString(16)).slice(-2)}`;
-            SZ.elements.markerColor.value = hexColor;
-            SZ.elements.markerColorValue.textContent = hexColor;
+            const hexColor = `#${('0' + mc.color.r.toString(16)).slice(-2)}${('0' + mc.color.g.toString(16)).slice(-2)}${('0' + mc.color.b.toString(16)).slice(-2)}`.toUpperCase();
+            markerColorPicker.setValue(hexColor);
         }
 
         if (mc.alpha !== undefined) {
@@ -4330,9 +4371,8 @@ function loadZoneDataToForm(zone) {
             });
         }
 
-        const hexColor = `#${('0' + mc.color.r.toString(16)).slice(-2)}${('0' + mc.color.g.toString(16)).slice(-2)}${('0' + mc.color.b.toString(16)).slice(-2)}`;
-        SZ.elements.markerColor.value = hexColor;
-        SZ.elements.markerColorValue.textContent = hexColor;
+        const hexColor = `#${('0' + mc.color.r.toString(16)).slice(-2)}${('0' + mc.color.g.toString(16)).slice(-2)}${('0' + mc.color.b.toString(16)).slice(-2)}`.toUpperCase();
+        markerColorPicker.setValue(hexColor);
 
         SZ.elements.markerAlpha.value = mc.alpha || 100;
         SZ.elements.markerAlphaValue.textContent = mc.alpha || 100;
@@ -5533,9 +5573,37 @@ async function refreshData() {
     }
 }
 
+let _closePanelTimeout = null;
+
 async function closePanel() {
     Log('UI', 'info', 'Closing panel');
     hideCreatorOverlay();
+
+    if (_hideFormTimeout) {
+        clearTimeout(_hideFormTimeout);
+        _hideFormTimeout = null;
+    }
+    _hideFormId++;
+    SZ.state.isCreatingZone = false;
+    SZ.state.isEditingZone = false;
+    SZ.state.editingZone = null;
+    if (SZ.elements.zoneForm) {
+        SZ.elements.zoneForm.classList.add('hidden');
+        SZ.elements.zoneForm.classList.remove('form-hiding');
+    }
+    if (SZ.elements.fabCreateZone) {
+        SZ.elements.fabCreateZone.style.display = 'flex';
+    }
+    if (SZ.elements.zonesSidebar) {
+        SZ.elements.zonesSidebar.style.display = 'flex';
+    }
+    if (SZ.elements.zonesList) {
+        SZ.elements.zonesList.style.display = '';
+    }
+    if (SZ.elements.zonesEmpty) {
+        SZ.elements.zonesEmpty.style.display = '';
+    }
+
     if (SZ.analyticsState && SZ.analyticsState.updateInterval) {
         clearInterval(SZ.analyticsState.updateInterval);
         SZ.analyticsState.updateInterval = null;
@@ -5548,15 +5616,21 @@ async function closePanel() {
     const app = document.getElementById('app');
     app.classList.remove('form-active');
     app.classList.add('hidden');
-    
+
     try {
         await sendNUI('closePanel');
     } catch (error) {
         Log('UI', 'warn', 'Could not notify backend about panel close:', error);
     }
-    
-    setTimeout(() => {
-        app.style.display = 'none';
+
+    if (_closePanelTimeout) {
+        clearTimeout(_closePanelTimeout);
+    }
+    _closePanelTimeout = setTimeout(() => {
+        _closePanelTimeout = null;
+        if (app.classList.contains('hidden')) {
+            app.style.display = 'none';
+        }
     }, 500);
 }
 
@@ -5651,6 +5725,35 @@ window.addEventListener('message', (event) => {
 
 function handleOpenPanel(zones, players, debugState, logs, logMeta) {
     hideCreatorOverlay();
+    if (_closePanelTimeout) {
+        clearTimeout(_closePanelTimeout);
+        _closePanelTimeout = null;
+    }
+    if (_hideFormTimeout) {
+        clearTimeout(_hideFormTimeout);
+        _hideFormTimeout = null;
+    }
+    _hideFormId++;
+    SZ.state.isCreatingZone = false;
+    SZ.state.isEditingZone = false;
+    SZ.state.editingZone = null;
+    if (SZ.elements.zoneForm) {
+        SZ.elements.zoneForm.classList.add('hidden');
+        SZ.elements.zoneForm.classList.remove('form-hiding');
+    }
+    if (SZ.elements.fabCreateZone) {
+        SZ.elements.fabCreateZone.style.display = 'flex';
+    }
+    if (SZ.elements.zonesSidebar) {
+        SZ.elements.zonesSidebar.style.display = 'flex';
+    }
+    if (SZ.elements.zonesList) {
+        SZ.elements.zonesList.style.display = '';
+    }
+    if (SZ.elements.zonesEmpty) {
+        SZ.elements.zonesEmpty.style.display = '';
+    }
+
     Log('NUI', 'info', `Panel opened with ${(zones || []).length} zones, ${(players || []).length} players`);
     SZ.state.zones = zones || [];
     SZ.state.players = players || [];

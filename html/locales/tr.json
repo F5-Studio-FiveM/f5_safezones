@@ -183,6 +183,7 @@
     "select_blip_color": "Blip Rengi Seç",
     "select_outline_color": "Dış Çizgi Rengi Seç",
     "select_stroke_color": "Kenarlık Rengi Seç",
+    "select_marker_color": "İşaretçi Rengini Seç",
     "search_blips": "Sprite ara...",
     "add_roof": "Çatı Ekle",
     "add_roof_desc": "Bölge işaretçisinin üstüne tavan çiz",

@@ -183,6 +183,7 @@
     "select_blip_color": "选择标记颜色",
     "select_outline_color": "选择轮廓颜色",
     "select_stroke_color": "选择描边颜色",
+    "select_marker_color": "选择标记颜色",
     "search_blips": "搜索图标...",
     "add_roof": "添加屋顶",
     "add_roof_desc": "在区域标记顶部绘制天花板",

@@ -1038,28 +1038,19 @@
                                         </div>
                                     </div>
 
-                                    <div class="color-picker-group">
+                                    <div class="blip-picker-group marker-color-group">
                                         <label data-i18n="form.marker_color">Marker Color</label>
-                                        <div class="color-input-wrapper">
-                                            <input type="color" class="color-picker" id="markerColor" value="#F5A623" />
-                                            <span class="color-value" id="markerColorValue">#F5A623</span>
-                                            <div class="preset-colors">
-                                                <button type="button" class="color-preset" data-color="#F5A623"
-                                                    style="background: #F5A623"></button>
-                                                <button type="button" class="color-preset" data-color="#F97316"
-                                                    style="background: #F97316"></button>
-                                                <button type="button" class="color-preset" data-color="#ff8800"
-                                                    style="background: #ff8800"></button>
-                                                <button type="button" class="color-preset" data-color="#ff4444"
-                                                    style="background: #ff4444"></button>
-                                                <button type="button" class="color-preset" data-color="#ffaa00"
-                                                    style="background: #ffaa00"></button>
-                                                <button type="button" class="color-preset" data-color="#aa00ff"
-                                                    style="background: #aa00ff"></button>
-                                                <button type="button" class="color-preset" data-color="#ffffff"
-                                                    style="background: #ffffff"></button>
-                                            </div>
-                                        </div>
+                                        <button type="button" class="blip-picker-btn" id="markerColorBtn">
+                                            <span class="blip-color-preview" id="markerColorPreview" style="background-color: #F5A623;"></span>
+                                            <span class="blip-picker-text">
+                                                <span class="blip-id" id="markerColorHex">#F5A623</span>
+                                                <span class="blip-name" id="markerColorNative">0xF5A623FF</span>
+                                            </span>
+                                            <svg class="blip-picker-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                            </svg>
+                                        </button>
+                                        <input type="hidden" id="markerColor" value="#F5A623" />
                                     </div>
 
                                     <div class="f-group">
@@ -1972,6 +1963,51 @@
                         <div class="color-picker-actions">
                             <button type="button" class="color-picker-btn cancel" id="strokePickerCancel" data-i18n="form.cancel">Cancel</button>
                             <button type="button" class="color-picker-btn confirm" id="strokePickerConfirm" data-i18n="form.confirm">Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="blip-modal" id="markerColorModal">
+                <div class="blip-modal-content blip-color-modal">
+                    <div class="blip-modal-header">
+                        <h4 data-i18n="form.select_marker_color">Select Marker Color</h4>
+                        <button type="button" class="blip-modal-close" id="markerColorModalClose">&times;</button>
+                    </div>
+                    <div class="blip-color-picker-container">
+                        <div class="color-picker-preview">
+                            <div class="color-preview-swatch" id="markerPickerSwatch" style="background-color: #F5A623;"></div>
+                            <div class="color-preview-info">
+                                <span class="color-hex-value" id="markerHexDisplay">#F5A623</span>
+                                <span class="color-rgb-value" id="markerRgbDisplay">RGB(245, 166, 35)</span>
+                                <span class="color-native-value" id="markerNativeDisplay">0xF5A623FF</span>
+                            </div>
+                        </div>
+                        <div class="color-picker-input-row">
+                            <input type="color" class="color-picker-native" id="markerPickerNative" value="#F5A623" />
+                            <input type="text" class="color-picker-hex-input" id="markerPickerHexInput" value="#F5A623" placeholder="#RRGGBB" maxlength="7" />
+                        </div>
+                        <div class="color-picker-sliders">
+                            <div class="color-slider-row">
+                                <span class="color-slider-label r">R</span>
+                                <input type="range" class="color-slider r-slider" id="markerSliderR" min="0" max="255" value="245" />
+                                <span class="color-slider-value" id="markerValueR">245</span>
+                            </div>
+                            <div class="color-slider-row">
+                                <span class="color-slider-label g">G</span>
+                                <input type="range" class="color-slider g-slider" id="markerSliderG" min="0" max="255" value="166" />
+                                <span class="color-slider-value" id="markerValueG">166</span>
+                            </div>
+                            <div class="color-slider-row">
+                                <span class="color-slider-label b">B</span>
+                                <input type="range" class="color-slider b-slider" id="markerSliderB" min="0" max="255" value="35" />
+                                <span class="color-slider-value" id="markerValueB">35</span>
+                            </div>
+                        </div>
+                        <div class="color-picker-actions">
+                            <button type="button" class="color-picker-btn cancel" id="markerPickerCancel" data-i18n="form.cancel">Cancel</button>
+                            <button type="button" class="color-picker-btn confirm" id="markerPickerConfirm" data-i18n="form.confirm">Confirm</button>
                         </div>
                     </div>
                 </div>

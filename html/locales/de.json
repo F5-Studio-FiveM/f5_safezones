@@ -183,6 +183,7 @@
     "select_blip_color": "Blip-Farbe auswählen",
     "select_outline_color": "Umriss-Farbe auswählen",
     "select_stroke_color": "Konturfarbe auswählen",
+    "select_marker_color": "Markerfarbe auswählen",
     "search_blips": "Sprites suchen...",
     "add_roof": "Dach hinzufügen",
     "add_roof_desc": "Eine Decke am oberen Rand des Zonenmarkers zeichnen",

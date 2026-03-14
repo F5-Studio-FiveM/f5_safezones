@@ -3,6 +3,7 @@ local Zones = Safezone.Zones
 local UI = Safezone.UI
 
 local nuiOpen = false
+local expectingOpen = false
 function UI.IsOpen()
     return nuiOpen
 end
@@ -243,6 +244,7 @@ end)
 
 if Config.Commands.szadmin and Config.Commands.szadmin.active then
     RegisterCommand(Config.Commands.szadmin.name, function()
+        expectingOpen = true
         TriggerServerEvent('f5_safezones:requestAdminData', 'initial')
     end, false)
 end
@@ -264,7 +266,8 @@ RegisterNetEvent('f5_safezones:receiveAdminData', function(zones, players, logs,
         })
         push_pending_polygon_points()
         push_pending_circle_data()
-    else
+    elseif expectingOpen then
+        expectingOpen = false
         UI.OpenAdminPanel(zones, players, logs, logMetadata)
     end
 end)
@@ -313,6 +316,10 @@ RegisterNUICallback('closePanel', function(_, cb)
 end)
 
 RegisterNUICallback('setCursor', function(data, cb)
+    if not nuiOpen then
+        cb('ok')
+        return
+    end
     SetNuiFocus(data.cursor, data.cursor)
     cb('ok')
 end)
@@ -336,6 +343,11 @@ RegisterNUICallback('startPolygonCreator', function(data, cb)
     end
 
     if Safezone.ZoneCreator.IsActive and Safezone.ZoneCreator.IsActive() then
+        cb({ ok = false })
+        return
+    end
+
+    if Safezone.CircleCreator and Safezone.CircleCreator.IsActive and Safezone.CircleCreator.IsActive() then
         cb({ ok = false })
         return
     end
@@ -496,23 +508,27 @@ end)
 RegisterNetEvent('f5_safezones:polygonCreatorFinished', function(points)
     if type(points) ~= 'table' or #points < 3 then
         Safezone.ShowNotification(Translate('polygon_creator_invalid'), 'error')
+        expectingOpen = true
         TriggerServerEvent('f5_safezones:requestAdminData', 'creator')
         return
     end
 
     UI.PendingPolygonPoints = points
     Safezone.ShowNotification(Translate('polygon_creator_finished'), 'success')
+    expectingOpen = true
     TriggerServerEvent('f5_safezones:requestAdminData', 'creator')
 end)
 
 RegisterNetEvent('f5_safezones:polygonCreatorCancelled', function()
     Safezone.ShowNotification(Translate('polygon_creator_cancelled'), 'primary')
+    expectingOpen = true
     TriggerServerEvent('f5_safezones:requestAdminData', 'creator')
 end)
 
 RegisterNetEvent('f5_safezones:circleCreatorFinished', function(data)
     if type(data) ~= 'table' or not data.center or not data.radius then
         Safezone.ShowNotification(Translate('circle_creator_invalid'), 'error')
+        expectingOpen = true
         TriggerServerEvent('f5_safezones:requestAdminData', 'creator')
         return
     end
@@ -522,11 +538,13 @@ RegisterNetEvent('f5_safezones:circleCreatorFinished', function(data)
         radius = data.radius
     }
     Safezone.ShowNotification(Translate('circle_creator_finished'), 'success')
+    expectingOpen = true
     TriggerServerEvent('f5_safezones:requestAdminData', 'creator')
 end)
 
 RegisterNetEvent('f5_safezones:circleCreatorCancelled', function()
     Safezone.ShowNotification(Translate('circle_creator_cancelled'), 'primary')
+    expectingOpen = true
     TriggerServerEvent('f5_safezones:requestAdminData', 'creator')
 end)
 

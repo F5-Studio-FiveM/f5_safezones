@@ -183,6 +183,7 @@
     "select_blip_color": "Seleccionar Color del Blip",
     "select_outline_color": "Seleccionar Color del Contorno",
     "select_stroke_color": "Seleccionar Color del Trazo",
+    "select_marker_color": "Seleccionar Color del Marcador",
     "search_blips": "Buscar sprites...",
     "add_roof": "Añadir Techo",
     "add_roof_desc": "Dibujar un techo en la parte superior del marcador de zona",

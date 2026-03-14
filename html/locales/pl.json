@@ -183,6 +183,7 @@
     "select_blip_color": "Wybierz Kolor Blipa",
     "select_outline_color": "Wybierz Kolor Konturu",
     "select_stroke_color": "Wybierz Kolor Obrysu",
+    "select_marker_color": "Wybierz Kolor Markera",
     "search_blips": "Szukaj sprite'ów...",
     "add_roof": "Dodaj Dach",
     "add_roof_desc": "Narysuj sufit na górze znacznika strefy",

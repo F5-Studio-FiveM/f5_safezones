@@ -183,6 +183,7 @@
     "select_blip_color": "เลือกสี Blip",
     "select_outline_color": "เลือกสีเส้นขอบ",
     "select_stroke_color": "เลือกสีเส้นขอบนอก",
+    "select_marker_color": "เลือกสีมาร์กเกอร์",
     "search_blips": "ค้นหา sprites...",
     "add_roof": "เพิ่มหลังคา",
     "add_roof_desc": "วาดเพดานที่ด้านบนของเครื่องหมายโซน",

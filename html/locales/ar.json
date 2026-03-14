@@ -183,6 +183,7 @@
     "select_blip_color": "اختيار لون العلامة",
     "select_outline_color": "اختيار لون الحدود",
     "select_stroke_color": "اختيار لون الحد الخارجي",
+    "select_marker_color": "اختر لون العلامة",
     "search_blips": "البحث عن الأشكال...",
     "add_roof": "إضافة سقف",
     "add_roof_desc": "رسم سقف في أعلى علامة المنطقة",

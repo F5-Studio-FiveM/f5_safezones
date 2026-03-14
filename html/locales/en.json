@@ -183,6 +183,7 @@
     "select_blip_color": "Select Blip Color",
     "select_outline_color": "Select Outline Color",
     "select_stroke_color": "Select Stroke Color",
+    "select_marker_color": "Select Marker Color",
     "search_blips": "Search sprites...",
     "add_roof": "Add Roof",
     "add_roof_desc": "Draw a ceiling at the top of the zone marker",

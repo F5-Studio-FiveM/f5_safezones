@@ -183,6 +183,7 @@
     "select_blip_color": "Sélectionner la Couleur du Blip",
     "select_outline_color": "Sélectionner la Couleur du Contour",
     "select_stroke_color": "Sélectionner la Couleur de la Bordure",
+    "select_marker_color": "Sélectionner la Couleur du Marqueur",
     "search_blips": "Rechercher des sprites...",
     "add_roof": "Ajouter un Toit",
     "add_roof_desc": "Dessiner un plafond en haut du marqueur de zone",
