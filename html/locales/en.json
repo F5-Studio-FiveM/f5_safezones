@@ -429,13 +429,19 @@
       "adjust_radius": "Adjust Radius",
       "radius_to_cursor": "Radius to Cursor",
       "reset_center": "Reset Center",
-      "confirm": "Confirm"
+      "confirm": "Confirm",
+      "select_point": "Select Point",
+      "next_point": "Next Point",
+      "move_point": "Move Point",
+      "delete_point": "Delete Point",
+      "deselect": "Deselect"
     },
     "panel": {
       "coordinates_header": "COORDINATES",
       "zone_info_header": "ZONE INFO",
       "no_coordinates": "No coordinates yet",
       "footer_remove_hint": "Press {key_x} To Remove The Last Coordinate",
+      "footer_selected_hint": "Point {index} selected — F to move, DEL to remove",
       "center_label": "Center",
       "radius_label": "Radius",
       "no_center": "No center set",

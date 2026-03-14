@@ -20,6 +20,7 @@ const SZ = {
         isCreatingZone: false,
         isEditingZone: false,
         editingZone: null,
+        pendingEditContext: null,
         debugEnabled: false,
         debugMode: 'all',
         singleZoneId: null,
@@ -900,7 +901,19 @@ function initializeEventListeners() {
     if (SZ.elements.startPolygonCreatorBtn) {
         SZ.elements.startPolygonCreatorBtn.addEventListener('click', async () => {
             setPolygonCreationMode('creator');
-            const result = await sendNUI('startPolygonCreator', { zoneSettings: collectZoneSettings() });
+            SZ.state.pendingEditContext = null;
+            if (SZ.state.isEditingZone && SZ.state.editingZone) {
+                SZ.state.pendingEditContext = {
+                    zone: SZ.state.editingZone,
+                    zoneId: document.getElementById('editingZoneId').value,
+                    originalName: document.getElementById('editingZoneName').value
+                };
+            }
+            const existingPoints = collectExistingPolygonPoints();
+            const result = await sendNUI('startPolygonCreator', {
+                zoneSettings: collectZoneSettings(),
+                existingPoints: existingPoints
+            });
             if (result && result.ok) {
                 Log('ZONE', 'info', 'Polygon creator started successfully');
                 showNotification(SZ.Localization.t('notifications.polygon_creator_starting'), 'info');
@@ -908,6 +921,7 @@ function initializeEventListeners() {
                 Log('ZONE', 'warn', 'Polygon creator failed to start', result);
                 showNotification(SZ.Localization.t('notifications.polygon_creator_failed'), 'error');
                 setPolygonCreationMode('manual');
+                SZ.state.pendingEditContext = null;
             }
         });
     }
@@ -920,7 +934,21 @@ function initializeEventListeners() {
     if (SZ.elements.startCircleCreatorBtn) {
         SZ.elements.startCircleCreatorBtn.addEventListener('click', async () => {
             setCircleCreationMode('creator');
-            const result = await sendNUI('startCircleCreator', { zoneSettings: collectZoneSettings() });
+            SZ.state.pendingEditContext = null;
+            if (SZ.state.isEditingZone && SZ.state.editingZone) {
+                SZ.state.pendingEditContext = {
+                    zone: SZ.state.editingZone,
+                    zoneId: document.getElementById('editingZoneId').value,
+                    originalName: document.getElementById('editingZoneName').value
+                };
+            }
+            const existingCircle = collectExistingCircleData();
+            const payload = { zoneSettings: collectZoneSettings() };
+            if (existingCircle) {
+                payload.existingCenter = existingCircle.center;
+                payload.existingRadius = existingCircle.radius;
+            }
+            const result = await sendNUI('startCircleCreator', payload);
             if (result && result.ok) {
                 Log('ZONE', 'info', 'Circle creator started successfully');
                 showNotification(SZ.Localization.t('notifications.circle_creator_starting'), 'info');
@@ -928,6 +956,7 @@ function initializeEventListeners() {
                 Log('ZONE', 'warn', 'Circle creator failed to start', result);
                 showNotification(SZ.Localization.t('notifications.circle_creator_failed'), 'error');
                 setCircleCreationMode('manual');
+                SZ.state.pendingEditContext = null;
             }
         });
     }
@@ -2724,10 +2753,45 @@ function clearPolygonPoints() {
     }
 }
 
+function applyCreatorPointsToForm(points) {
+    clearPolygonPoints();
+    points.forEach((point, index) => {
+        addPolygonPoint();
+        const row = SZ.elements.polygonPointInputs?.children[index];
+        if (!row) return;
+        const xInput = row.querySelector('input[data-coord="x"]');
+        const yInput = row.querySelector('input[data-coord="y"]');
+        const zInput = row.querySelector('input[data-coord="z"]');
+        if (xInput) xInput.value = formatCoordinate(typeof point.x === 'number' ? point.x : 0);
+        if (yInput) yInput.value = formatCoordinate(typeof point.y === 'number' ? point.y : 0);
+        if (zInput) zInput.value = formatCoordinate(typeof point.z === 'number' ? point.z : 0);
+    });
+    updatePolygonMinMaxZ();
+}
+
+function restoreEditContext() {
+    const ctx = SZ.state.pendingEditContext;
+    if (!ctx) return;
+    SZ.state.pendingEditContext = null;
+
+    SZ.state.isEditingZone = true;
+    SZ.state.editingZone = ctx.zone;
+    document.getElementById('editingZoneId').value = ctx.zoneId;
+    document.getElementById('editingZoneName').value = ctx.originalName;
+
+    loadZoneDataToForm(ctx.zone);
+
+    const formTitle = document.querySelector('.zone-form h3');
+    if (formTitle) formTitle.textContent = SZ.Localization.t('form.edit_title');
+    const submitBtn = document.querySelector('#createZoneForm button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = SZ.Localization.t('form.update');
+}
+
 function applyPolygonCreatorPoints(points) {
     if (!Array.isArray(points) || points.length < 3) {
         Log('ZONE', 'warn', `Polygon creator returned insufficient points: ${Array.isArray(points) ? points.length : 'not array'}`);
         showNotification(SZ.Localization.t('notifications.polygon_min_points'), 'error');
+        SZ.state.pendingEditContext = null;
         return;
     }
     Log('ZONE', 'info', `Applying ${points.length} polygon creator points`);
@@ -2738,40 +2802,13 @@ function applyPolygonCreatorPoints(points) {
         selectZoneType('polygon');
     }
 
-    clearPolygonPoints();
+    const hadEditContext = !!SZ.state.pendingEditContext;
+    if (hadEditContext) {
+        restoreEditContext();
+    }
 
-    points.forEach((point, index) => {
-        addPolygonPoint();
-        const container = SZ.elements.polygonPointInputs;
-        if (!container) {
-            return;
-        }
+    applyCreatorPointsToForm(points);
 
-        const row = container.children[index];
-        if (!row) {
-            return;
-        }
-
-        const xInput = row.querySelector('input[data-coord="x"]');
-        const yInput = row.querySelector('input[data-coord="y"]');
-        const zInput = row.querySelector('input[data-coord="z"]');
-
-        const px = point && typeof point.x === 'number' ? point.x : 0;
-        const py = point && typeof point.y === 'number' ? point.y : 0;
-        const pz = point && typeof point.z === 'number' ? point.z : 0;
-
-        if (xInput) {
-            xInput.value = formatCoordinate(px);
-        }
-        if (yInput) {
-            yInput.value = formatCoordinate(py);
-        }
-        if (zInput) {
-            zInput.value = formatCoordinate(pz);
-        }
-    });
-
-    updatePolygonMinMaxZ();
     setPolygonCreationMode('manual');
     showNotification(SZ.Localization.t('notifications.polygon_creator_imported', { count: points.length }), 'success');
 }
@@ -2780,6 +2817,7 @@ function applyCircleCreatorData(center, radius) {
     if (!center || typeof radius !== 'number') {
         Log('ZONE', 'warn', `Circle creator returned invalid data: center=${!!center}, radius=${typeof radius}`);
         showNotification(SZ.Localization.t('notifications.circle_creator_invalid'), 'error');
+        SZ.state.pendingEditContext = null;
         return;
     }
     Log('ZONE', 'info', `Applying circle creator data: center=(${center.x?.toFixed(1)}, ${center.y?.toFixed(1)}, ${center.z?.toFixed(1)}), radius=${radius.toFixed(1)}`);
@@ -2790,30 +2828,25 @@ function applyCircleCreatorData(center, radius) {
         selectZoneType('circle');
     }
 
-    if (SZ.elements.coordX) {
-        SZ.elements.coordX.value = formatCoordinate(center.x);
-    }
-    if (SZ.elements.coordY) {
-        SZ.elements.coordY.value = formatCoordinate(center.y);
-    }
-    if (SZ.elements.coordZ) {
-        SZ.elements.coordZ.value = formatCoordinate(center.z);
+    const hadEditContext = !!SZ.state.pendingEditContext;
+    if (hadEditContext) {
+        restoreEditContext();
     }
 
+    if (SZ.elements.coordX) SZ.elements.coordX.value = formatCoordinate(center.x);
+    if (SZ.elements.coordY) SZ.elements.coordY.value = formatCoordinate(center.y);
+    if (SZ.elements.coordZ) SZ.elements.coordZ.value = formatCoordinate(center.z);
+
     const clampedRadius = Math.max(10, Math.min(500, Math.round(radius)));
-    if (SZ.elements.zoneRadius) {
-        SZ.elements.zoneRadius.value = clampedRadius;
-    }
+    if (SZ.elements.zoneRadius) SZ.elements.zoneRadius.value = clampedRadius;
     if (SZ.elements.radiusRange) {
         SZ.elements.radiusRange.value = clampedRadius;
         updateSliderFill(SZ.elements.radiusRange);
     }
 
-    if (SZ.elements.circleMinZ) {
-        SZ.elements.circleMinZ.value = formatCoordinate(center.z - 50);
-    }
-    if (SZ.elements.circleMaxZ) {
-        SZ.elements.circleMaxZ.value = formatCoordinate(center.z + 150);
+    if (!hadEditContext) {
+        if (SZ.elements.circleMinZ) SZ.elements.circleMinZ.value = formatCoordinate(center.z - 50);
+        if (SZ.elements.circleMaxZ) SZ.elements.circleMaxZ.value = formatCoordinate(center.z + 150);
     }
 
     setCircleCreationMode('manual');
@@ -2823,6 +2856,31 @@ function applyCircleCreatorData(center, radius) {
 function useCurrentLocation() {
     Log('NUI', 'info', 'Requesting current player coordinates');
     sendNUI('getPlayerCoords');
+}
+
+function collectExistingPolygonPoints() {
+    const container = SZ.elements.polygonPointInputs;
+    if (!container) return null;
+    const rows = container.querySelectorAll('.point-input-row');
+    if (rows.length < 3) return null;
+    const points = [];
+    for (let i = 0; i < rows.length; i++) {
+        const x = parseFloat(rows[i].querySelector('input[data-coord="x"]')?.value);
+        const y = parseFloat(rows[i].querySelector('input[data-coord="y"]')?.value);
+        const z = parseFloat(rows[i].querySelector('input[data-coord="z"]')?.value);
+        if (isNaN(x) || isNaN(y)) return null;
+        points.push({ x, y, z: isNaN(z) ? 0 : z });
+    }
+    return points.length >= 3 ? points : null;
+}
+
+function collectExistingCircleData() {
+    const x = parseFloat(SZ.elements.coordX?.value);
+    const y = parseFloat(SZ.elements.coordY?.value);
+    const z = parseFloat(SZ.elements.coordZ?.value);
+    const radius = parseFloat(SZ.elements.zoneRadius?.value);
+    if (isNaN(x) || isNaN(y) || isNaN(z) || isNaN(radius)) return null;
+    return { center: { x, y, z }, radius };
 }
 
 function collectZoneSettings() {
@@ -4073,7 +4131,7 @@ async function handleEditZone() {
 
     closeZoneModal();
 
-    showCreateForm();
+    showCreateForm(zone.type);
 
     document.getElementById('editingZoneId').value = zone.id;
     document.getElementById('editingZoneName').value = zone.name;
@@ -5845,13 +5903,14 @@ function updateHeaderStats() {
     SZ.elements.activePlayersHeader.textContent = SZ.state.players.length;
 }
 
-let _creatorState = { type: null, phase: 1 };
+let _creatorState = { type: null, phase: 1, selectedPoint: null };
 
 function showCreatorOverlay(data) {
     const overlay = document.getElementById('creatorOverlay');
     if (!overlay) return;
     _creatorState.type = data.type;
     _creatorState.phase = data.phase || 1;
+    _creatorState.selectedPoint = null;
     overlay.classList.remove('hidden');
     renderCreatorControls(data.type, _creatorState.phase);
     renderCreatorSidePanel(data.type, _creatorState.phase, data.coordinates, data.zoneInfo);
@@ -5862,9 +5921,12 @@ function updateCreatorOverlay(data) {
     if (!overlay || overlay.classList.contains('hidden')) return;
     if (data.type) _creatorState.type = data.type;
     if (data.phase !== undefined) _creatorState.phase = data.phase;
+    const prevSelected = _creatorState.selectedPoint;
+    if (data.selectedPoint !== undefined) _creatorState.selectedPoint = data.selectedPoint;
     const t = _creatorState.type;
     const p = _creatorState.phase;
-    if (data.phase !== undefined) renderCreatorControls(t, p);
+    const selectionChanged = prevSelected !== _creatorState.selectedPoint;
+    if (data.phase !== undefined || selectionChanged) renderCreatorControls(t, p);
     renderCreatorSidePanel(t, p, data.coordinates, data.zoneInfo);
 }
 
@@ -5874,6 +5936,7 @@ function hideCreatorOverlay() {
     overlay.classList.add('hidden');
     _creatorState.type = null;
     _creatorState.phase = 1;
+    _creatorState.selectedPoint = null;
 }
 
 function renderCreatorControls(type, phase) {
@@ -5889,14 +5952,28 @@ function renderCreatorControls(type, phase) {
     ];
 
     if (type === 'polygon') {
-        controls = [
-            ...base,
-            { label: SZ.Localization.t('creator.controls.add_coordinate'), key: 'F' },
-            { label: SZ.Localization.t('creator.controls.remove_coordinate'), key: 'X', danger: true },
-            { label: SZ.Localization.t('creator.controls.debug'), key: 'G' },
-            { label: SZ.Localization.t('creator.controls.complete'), key: 'ENTER' },
-            { label: SZ.Localization.t('creator.controls.exit'), key: 'BACKSPACE', danger: true }
-        ];
+        if (_creatorState.selectedPoint) {
+            controls = [
+                ...base,
+                { label: SZ.Localization.t('creator.controls.move_point'), key: 'F' },
+                { label: SZ.Localization.t('creator.controls.next_point'), key: 'TAB' },
+                { label: SZ.Localization.t('creator.controls.delete_point'), key: 'DEL', danger: true },
+                { label: SZ.Localization.t('creator.controls.deselect'), key: 'X' },
+                { label: SZ.Localization.t('creator.controls.debug'), key: 'G' },
+                { label: SZ.Localization.t('creator.controls.complete'), key: 'ENTER' },
+                { label: SZ.Localization.t('creator.controls.exit'), key: 'BACKSPACE', danger: true }
+            ];
+        } else {
+            controls = [
+                ...base,
+                { label: SZ.Localization.t('creator.controls.add_coordinate'), key: 'F' },
+                { label: SZ.Localization.t('creator.controls.remove_coordinate'), key: 'X', danger: true },
+                { label: SZ.Localization.t('creator.controls.select_point'), key: 'TAB' },
+                { label: SZ.Localization.t('creator.controls.debug'), key: 'G' },
+                { label: SZ.Localization.t('creator.controls.complete'), key: 'ENTER' },
+                { label: SZ.Localization.t('creator.controls.exit'), key: 'BACKSPACE', danger: true }
+            ];
+        }
     } else if (type === 'circle') {
         if (phase === 1) {
             controls = [
@@ -5935,15 +6012,25 @@ function renderCreatorSidePanel(type, phase, coordinates, zoneInfo) {
         header.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M21 10C21 17 12 23 12 23S3 17 3 10A9 9 0 0112 1A9 9 0 0121 10Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2"/></svg><span>${SZ.Localization.t('creator.panel.coordinates_header')}</span>`;
 
         if (coordinates && coordinates.length > 0) {
-            body.innerHTML = coordinates.map((c, i) =>
-                `<div class="creator-coord-item"><span class="creator-coord-badge">${i + 1}</span><span class="creator-coord-text">${c.x.toFixed(2)}, ${c.y.toFixed(2)}, ${c.z.toFixed(2)}</span></div>`
-            ).join('');
-            body.scrollTop = body.scrollHeight;
+            const sel = _creatorState.selectedPoint;
+            body.innerHTML = coordinates.map((c, i) => {
+                const isSelected = sel === (i + 1);
+                return `<div class="creator-coord-item${isSelected ? ' selected' : ''}"><span class="creator-coord-badge${isSelected ? ' selected' : ''}">${i + 1}</span><span class="creator-coord-text">${c.x.toFixed(2)}, ${c.y.toFixed(2)}, ${c.z.toFixed(2)}</span></div>`;
+            }).join('');
+            if (sel && body.children[sel - 1]) {
+                body.children[sel - 1].scrollIntoView({ block: 'nearest' });
+            } else {
+                body.scrollTop = body.scrollHeight;
+            }
         } else {
             body.innerHTML = `<div class="creator-empty-state">${SZ.Localization.t('creator.panel.no_coordinates')}</div>`;
         }
 
-        footer.innerHTML = SZ.Localization.t('creator.panel.footer_remove_hint', { key_x: keySpan('X') });
+        if (_creatorState.selectedPoint) {
+            footer.innerHTML = SZ.Localization.t('creator.panel.footer_selected_hint', { index: _creatorState.selectedPoint });
+        } else {
+            footer.innerHTML = SZ.Localization.t('creator.panel.footer_remove_hint', { key_x: keySpan('X') });
+        }
 
     } else if (type === 'circle') {
         header.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>${SZ.Localization.t('creator.panel.zone_info_header')}</span>`;

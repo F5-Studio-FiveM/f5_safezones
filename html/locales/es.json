@@ -429,13 +429,19 @@
       "adjust_radius": "Ajustar Radio",
       "radius_to_cursor": "Radio al Cursor",
       "reset_center": "Restablecer Centro",
-      "confirm": "Confirmar"
+      "confirm": "Confirmar",
+      "select_point": "Seleccionar Punto",
+      "next_point": "Siguiente Punto",
+      "move_point": "Mover Punto",
+      "delete_point": "Eliminar Punto",
+      "deselect": "Deseleccionar"
     },
     "panel": {
       "coordinates_header": "COORDENADAS",
       "zone_info_header": "INFO DE ZONA",
       "no_coordinates": "Sin coordenadas aún",
       "footer_remove_hint": "Presiona {key_x} para eliminar la última coordenada",
+      "footer_selected_hint": "Punto {index} seleccionado — F para mover, DEL para eliminar",
       "center_label": "Centro",
       "radius_label": "Radio",
       "no_center": "Sin centro establecido",

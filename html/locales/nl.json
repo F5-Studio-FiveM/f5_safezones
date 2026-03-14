@@ -429,13 +429,19 @@
       "adjust_radius": "Straal Aanpassen",
       "radius_to_cursor": "Straal naar Cursor",
       "reset_center": "Middelpunt Resetten",
-      "confirm": "Bevestigen"
+      "confirm": "Bevestigen",
+      "select_point": "Punt Selecteren",
+      "next_point": "Volgend Punt",
+      "move_point": "Punt Verplaatsen",
+      "delete_point": "Punt Verwijderen",
+      "deselect": "Deselecteren"
     },
     "panel": {
       "coordinates_header": "COÖRDINATEN",
       "zone_info_header": "ZONE-INFO",
       "no_coordinates": "Nog geen coördinaten",
       "footer_remove_hint": "Druk op {key_x} om de laatste coördinaat te verwijderen",
+      "footer_selected_hint": "Punt {index} geselecteerd — F om te verplaatsen, DEL om te verwijderen",
       "center_label": "Midden",
       "radius_label": "Straal",
       "no_center": "Geen middelpunt ingesteld",

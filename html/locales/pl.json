@@ -429,13 +429,19 @@
       "adjust_radius": "Dostosuj Promień",
       "radius_to_cursor": "Promień do Kursora",
       "reset_center": "Resetuj Środek",
-      "confirm": "Potwierdź"
+      "confirm": "Potwierdź",
+      "select_point": "Wybierz Punkt",
+      "next_point": "Następny Punkt",
+      "move_point": "Przesuń Punkt",
+      "delete_point": "Usuń Punkt",
+      "deselect": "Odznacz"
     },
     "panel": {
       "coordinates_header": "WSPÓŁRZĘDNE",
       "zone_info_header": "INFO O STREFIE",
       "no_coordinates": "Brak współrzędnych",
       "footer_remove_hint": "Naciśnij {key_x} aby usunąć ostatnią współrzędną",
+      "footer_selected_hint": "Punkt {index} zaznaczony — F aby przenieść, DEL aby usunąć",
       "center_label": "Środek",
       "radius_label": "Promień",
       "no_center": "Nie ustawiono środka",

@@ -429,13 +429,19 @@
       "adjust_radius": "Radius anpassen",
       "radius_to_cursor": "Radius zum Cursor",
       "reset_center": "Mittelpunkt zurücksetzen",
-      "confirm": "Bestätigen"
+      "confirm": "Bestätigen",
+      "select_point": "Punkt Auswählen",
+      "next_point": "Nächster Punkt",
+      "move_point": "Punkt Verschieben",
+      "delete_point": "Punkt Löschen",
+      "deselect": "Abwählen"
     },
     "panel": {
       "coordinates_header": "KOORDINATEN",
       "zone_info_header": "ZONEN-INFO",
       "no_coordinates": "Noch keine Koordinaten",
       "footer_remove_hint": "Drücke {key_x} um die letzte Koordinate zu entfernen",
+      "footer_selected_hint": "Punkt {index} ausgewählt — F zum Verschieben, DEL zum Entfernen",
       "center_label": "Mitte",
       "radius_label": "Radius",
       "no_center": "Kein Mittelpunkt gesetzt",

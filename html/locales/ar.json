@@ -429,13 +429,19 @@
       "adjust_radius": "ضبط نصف القطر",
       "radius_to_cursor": "نصف القطر للمؤشر",
       "reset_center": "إعادة تعيين المركز",
-      "confirm": "تأكيد"
+      "confirm": "تأكيد",
+      "select_point": "اختر نقطة",
+      "next_point": "النقطة التالية",
+      "move_point": "نقل النقطة",
+      "delete_point": "حذف النقطة",
+      "deselect": "إلغاء التحديد"
     },
     "panel": {
       "coordinates_header": "الإحداثيات",
       "zone_info_header": "معلومات المنطقة",
       "no_coordinates": "لا توجد إحداثيات بعد",
       "footer_remove_hint": "اضغط {key_x} لإزالة آخر إحداثي",
+      "footer_selected_hint": "تم تحديد النقطة {index} — F للنقل، DEL للحذف",
       "center_label": "المركز",
       "radius_label": "نصف القطر",
       "no_center": "لم يتم تحديد المركز",

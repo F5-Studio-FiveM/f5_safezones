@@ -87,6 +87,13 @@ if not _is_server then
         DisableControlAction(0, get_key("leftshift"))
         DisableControlAction(0, get_key("leftcontrol"))
         DisableControlAction(0, get_key("g"))
+        DisableControlAction(0, get_key("f"))
+        DisableControlAction(0, get_key("x"))
+        DisableControlAction(0, get_key("r"))
+        DisableControlAction(0, get_key("enter"))
+        DisableControlAction(0, get_key("backspace"))
+        DisableControlAction(0, get_key("scrollup"))
+        DisableControlAction(0, get_key("scrolldown"))
 
         local move_dir = vector3(0, 0, 0)
         local forward = rot_to_dir(cam_rot)
@@ -200,6 +207,8 @@ if not _is_server then
         SetEntityInvincible(ped, false)
         SetEntityVisible(ped, true, false)
         FreezeEntityPosition(ped, false)
+        SetNuiFocusKeepInput(false)
+        SetNuiFocus(false, false)
 
         is_active = false
         fly_speed = false
@@ -229,15 +238,15 @@ if not _is_server then
         creator_context = nil
     end
 
-    local function start_circle_creator(context)
+    local function start_circle_creator(context, initial_center, initial_radius)
         if is_active then
             stop_circle_creator()
             return
         end
 
         creator_context = context or 'standalone'
-        center_point = nil
-        current_radius = 50.0
+        center_point = initial_center or nil
+        current_radius = initial_radius or 50.0
         is_active = true
 
         local ped = PlayerPedId()
@@ -245,12 +254,15 @@ if not _is_server then
         SetEntityVisible(ped, false, false)
         FreezeEntityPosition(ped, true)
         SetEntityCollision(ped, false, false)
+        SetNuiFocus(true, false)
+        SetNuiFocusKeepInput(true)
 
+        local initial_phase = center_point and 2 or 1
         SendNUIMessage({
             action = 'showCreatorOverlay',
             type = 'circle',
-            phase = 1,
-            zoneInfo = nil
+            phase = initial_phase,
+            zoneInfo = center_point and get_circle_zone_info() or nil
         })
 
         CreateThread(function()
@@ -320,23 +332,21 @@ if not _is_server then
             while is_active do
                 Wait(0)
 
-                if IsControlJustPressed(0, get_key("f")) and not center_point then
+                if IsDisabledControlJustPressed(0, get_key("f")) and not center_point then
                     local hit = get_aim_coord()
                     if hit then
                         center_point = hit
-                        current_radius = 50.0
                         send_circle_nui_update()
                     end
 
-                elseif IsControlJustPressed(0, get_key("x")) and center_point then
+                elseif IsDisabledControlJustPressed(0, get_key("x")) and center_point then
                     center_point = nil
-                    current_radius = 50.0
                     send_circle_nui_update()
 
                 elseif IsDisabledControlJustPressed(0, get_key("g")) then
                     debug_preview = not debug_preview
 
-                elseif IsControlJustPressed(0, get_key("r")) and center_point then
+                elseif IsDisabledControlJustPressed(0, get_key("r")) and center_point then
                     local hit = get_aim_coord()
                     if hit then
                         local dist = #(vector2(hit.x, hit.y) - vector2(center_point.x, center_point.y))
@@ -346,7 +356,7 @@ if not _is_server then
                     end
 
                 elseif center_point then
-                    if IsControlJustPressed(0, get_key("scrollup")) or IsDisabledControlJustPressed(0, get_key("scrollup")) then
+                    if IsDisabledControlJustPressed(0, get_key("scrollup")) then
                         local step = radius_step
                         if IsDisabledControlPressed(0, get_key("leftshift")) then
                             step = step * 5
@@ -357,7 +367,7 @@ if not _is_server then
                         send_circle_nui_update()
                     end
 
-                    if IsControlJustPressed(0, get_key("scrolldown")) or IsDisabledControlJustPressed(0, get_key("scrolldown")) then
+                    if IsDisabledControlJustPressed(0, get_key("scrolldown")) then
                         local step = radius_step
                         if IsDisabledControlPressed(0, get_key("leftshift")) then
                             step = step * 5
@@ -369,7 +379,7 @@ if not _is_server then
                     end
                 end
 
-                if IsControlJustPressed(0, get_key("enter")) then
+                if IsDisabledControlJustPressed(0, get_key("enter")) then
                     if center_point and current_radius >= min_radius then
                         print(Translate('creator_circle_confirmed'):format(
                             center_point.x, center_point.y, center_point.z, current_radius))
@@ -378,7 +388,7 @@ if not _is_server then
                         print(Translate('creator_circle_need_center'))
                     end
 
-                elseif IsControlJustPressed(0, get_key("backspace")) then
+                elseif IsDisabledControlJustPressed(0, get_key("backspace")) then
                     stop_circle_creator()
                 end
             end
@@ -389,9 +399,18 @@ if not _is_server then
         start_circle_creator(context or 'standalone')
     end
 
-    CircleCreator.StartFromNui = function(settings)
+    CircleCreator.StartFromNui = function(settings, existingCenter, existingRadius)
         zone_settings = settings
-        start_circle_creator('nui')
+        local center = nil
+        if existingCenter then
+            local cx = tonumber(existingCenter.x)
+            local cy = tonumber(existingCenter.y)
+            local cz = tonumber(existingCenter.z)
+            if cx and cy and cz then
+                center = vector3(cx, cy, cz)
+            end
+        end
+        start_circle_creator('nui', center, tonumber(existingRadius) or 50.0)
     end
 
     CircleCreator.IsActive = function()

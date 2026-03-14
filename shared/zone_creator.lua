@@ -88,6 +88,7 @@ if not _is_server then
     local debug_preview = false
     local zone_settings = nil
     local cached_serialized = nil
+    local selected_point = nil
 
     local function get_key(k)
         return _keys[k] or 0
@@ -124,6 +125,12 @@ if not _is_server then
         DisableControlAction(0, get_key("leftshift"))
         DisableControlAction(0, get_key("leftcontrol"))
         DisableControlAction(0, get_key("g"))
+        DisableControlAction(0, get_key("tab"))
+        DisableControlAction(0, get_key("delete"))
+        DisableControlAction(0, get_key("f"))
+        DisableControlAction(0, get_key("x"))
+        DisableControlAction(0, get_key("enter"))
+        DisableControlAction(0, get_key("backspace"))
 
         local move_dir = vector3(0, 0, 0)
         local forward = rot_to_dir(cam_rot)
@@ -177,8 +184,14 @@ if not _is_server then
         for i = 1, #points do
             local a = points[i]
             local bpt = points[i + 1] or points[1]
-            DrawLine(a.x, a.y, a.z + 0.2, bpt.x, bpt.y, bpt.z + 0.2, r, g, b, 255)
-            draw_text_3d(a.x, a.y, a.z + 0.25, tostring(i))
+            if i == selected_point then
+                DrawLine(a.x, a.y, a.z + 0.2, bpt.x, bpt.y, bpt.z + 0.2, 0, 255, 0, 255)
+                draw_crosshair(a.x, a.y, a.z, 0.5, 0, 255, 0, 255)
+                draw_text_3d(a.x, a.y, a.z + 0.5, '~g~[' .. tostring(i) .. ']~s~')
+            else
+                DrawLine(a.x, a.y, a.z + 0.2, bpt.x, bpt.y, bpt.z + 0.2, r, g, b, 255)
+                draw_text_3d(a.x, a.y, a.z + 0.25, tostring(i))
+            end
         end
     end
 
@@ -199,7 +212,8 @@ if not _is_server then
         SendNUIMessage({
             action = 'updateCreatorOverlay',
             type = 'polygon',
-            coordinates = cached_serialized
+            coordinates = cached_serialized,
+            selectedPoint = selected_point
         })
     end
 
@@ -218,12 +232,15 @@ if not _is_server then
         SetEntityInvincible(ped, false)
         SetEntityVisible(ped, true, false)
         FreezeEntityPosition(ped, false)
+        SetNuiFocusKeepInput(false)
+        SetNuiFocus(false, false)
         is_active = false
         fly_speed = false
         debug_preview = false
         zone_settings = nil
         cached_serialized = nil
         current_zone = {}
+        selected_point = nil
 
         SendNUIMessage({ action = 'hideCreatorOverlay' })
 
@@ -239,14 +256,15 @@ if not _is_server then
         creator_context = nil
     end
 
-    local function start_zone_creator(context)
+    local function start_zone_creator(context, initial_points)
         if is_active then
             stop_zone_creator()
             return
         end
 
         creator_context = context or 'standalone'
-        current_zone = {}
+        current_zone = initial_points or {}
+        selected_point = nil
         is_active = true
 
         local ped = PlayerPedId()
@@ -254,11 +272,16 @@ if not _is_server then
         SetEntityVisible(ped, false, false)
         FreezeEntityPosition(ped, true)
         SetEntityCollision(ped, false, false)
+        SetNuiFocus(true, false)
+        SetNuiFocusKeepInput(true)
+
+        local init_coords = #current_zone > 0 and serialize_points(current_zone) or {}
+        cached_serialized = #current_zone > 0 and init_coords or nil
 
         SendNUIMessage({
             action = 'showCreatorOverlay',
             type = 'polygon',
-            coordinates = {}
+            coordinates = init_coords
         })
 
         CreateThread(function()
@@ -281,7 +304,11 @@ if not _is_server then
 
                 local aim = get_aim_coord()
                 if aim then
-                    draw_crosshair(aim.x, aim.y, aim.z, 0.3, 0, 200, 0, 200)
+                    if selected_point then
+                        draw_crosshair(aim.x, aim.y, aim.z, 0.3, 0, 255, 0, 200)
+                    else
+                        draw_crosshair(aim.x, aim.y, aim.z, 0.3, 0, 200, 0, 200)
+                    end
                 end
             end
         end)
@@ -290,23 +317,50 @@ if not _is_server then
             while is_active do
                 Wait(0)
 
-                if IsControlJustPressed(0, get_key("f")) then
-                    local hit = get_aim_coord()
-                    if hit then
-                        current_zone[#current_zone + 1] = hit
+                if IsDisabledControlJustPressed(0, get_key("tab")) then
+                    if #current_zone > 0 then
+                        if selected_point == nil then
+                            selected_point = 1
+                        else
+                            selected_point = selected_point % #current_zone + 1
+                        end
                         send_polygon_nui_update()
                     end
 
-                elseif IsControlJustPressed(0, get_key("x")) then
-                    if #current_zone > 0 then
+                elseif IsDisabledControlJustPressed(0, get_key("f")) then
+                    local hit = get_aim_coord()
+                    if hit then
+                        if selected_point and selected_point <= #current_zone then
+                            current_zone[selected_point] = hit
+                        else
+                            current_zone[#current_zone + 1] = hit
+                            selected_point = nil
+                        end
+                        send_polygon_nui_update()
+                    end
+
+                elseif IsDisabledControlJustPressed(0, get_key("x")) then
+                    if selected_point then
+                        selected_point = nil
+                        send_polygon_nui_update()
+                    elseif #current_zone > 0 then
                         current_zone[#current_zone] = nil
+                        send_polygon_nui_update()
+                    end
+
+                elseif IsDisabledControlJustPressed(0, get_key("delete")) then
+                    if selected_point and selected_point <= #current_zone and #current_zone > 3 then
+                        table.remove(current_zone, selected_point)
+                        if selected_point > #current_zone then
+                            selected_point = #current_zone
+                        end
                         send_polygon_nui_update()
                     end
 
                 elseif IsDisabledControlJustPressed(0, get_key("g")) then
                     debug_preview = not debug_preview
 
-                elseif IsControlJustPressed(0, get_key("enter")) then
+                elseif IsDisabledControlJustPressed(0, get_key("enter")) then
                     if #current_zone >= 3 then
                         if creator_context == 'nui' then
                             local serialized = serialize_points(current_zone)
@@ -331,22 +385,30 @@ if not _is_server then
 
                             current_zone = {}
                             zone_index = zone_index + 1
+                            selected_point = nil
                             send_polygon_nui_update()
                         end
                     else
                         print(Translate('creator_need_3_points'))
                     end
 
-                elseif IsControlJustPressed(0, get_key("backspace")) then
+                elseif IsDisabledControlJustPressed(0, get_key("backspace")) then
                     stop_zone_creator()
                 end
             end
         end)
     end
 
-    ZoneCreator.StartFromNui = function(settings)
+    ZoneCreator.StartFromNui = function(settings, existingPoints)
         zone_settings = settings
-        start_zone_creator('nui')
+        local points = nil
+        if existingPoints and type(existingPoints) == 'table' and #existingPoints >= 3 then
+            points = {}
+            for i, pt in ipairs(existingPoints) do
+                points[i] = vector3(tonumber(pt.x) or 0, tonumber(pt.y) or 0, tonumber(pt.z) or 0)
+            end
+        end
+        start_zone_creator('nui', points)
     end
 
     ZoneCreator.IsActive = function()

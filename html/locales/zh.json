@@ -429,13 +429,19 @@
       "adjust_radius": "调整半径",
       "radius_to_cursor": "光标半径",
       "reset_center": "重置中心",
-      "confirm": "确认"
+      "confirm": "确认",
+      "select_point": "选择点",
+      "next_point": "下一个点",
+      "move_point": "移动点",
+      "delete_point": "删除点",
+      "deselect": "取消选择"
     },
     "panel": {
       "coordinates_header": "坐标",
       "zone_info_header": "区域信息",
       "no_coordinates": "暂无坐标",
       "footer_remove_hint": "按 {key_x} 移除最后一个坐标",
+      "footer_selected_hint": "已选择点 {index} — F 移动，DEL 删除",
       "center_label": "中心",
       "radius_label": "半径",
       "no_center": "未设置中心",

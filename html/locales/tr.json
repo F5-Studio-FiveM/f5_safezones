@@ -429,13 +429,19 @@
       "adjust_radius": "Yarıçapı Ayarla",
       "radius_to_cursor": "İmlece Yarıçap",
       "reset_center": "Merkezi Sıfırla",
-      "confirm": "Onayla"
+      "confirm": "Onayla",
+      "select_point": "Nokta Seç",
+      "next_point": "Sonraki Nokta",
+      "move_point": "Noktayı Taşı",
+      "delete_point": "Noktayı Sil",
+      "deselect": "Seçimi Kaldır"
     },
     "panel": {
       "coordinates_header": "KOORDİNATLAR",
       "zone_info_header": "BÖLGE BİLGİSİ",
       "no_coordinates": "Henüz koordinat yok",
       "footer_remove_hint": "Son koordinatı kaldırmak için {key_x} tuşuna basın",
+      "footer_selected_hint": "Nokta {index} seçildi — F taşımak için, DEL silmek için",
       "center_label": "Merkez",
       "radius_label": "Yarıçap",
       "no_center": "Merkez belirlenmedi",

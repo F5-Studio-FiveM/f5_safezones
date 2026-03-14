@@ -429,13 +429,19 @@
       "adjust_radius": "ปรับรัศมี",
       "radius_to_cursor": "รัศมีถึงเคอร์เซอร์",
       "reset_center": "รีเซ็ตจุดศูนย์กลาง",
-      "confirm": "ยืนยัน"
+      "confirm": "ยืนยัน",
+      "select_point": "เลือกจุด",
+      "next_point": "จุดถัดไป",
+      "move_point": "ย้ายจุด",
+      "delete_point": "ลบจุด",
+      "deselect": "ยกเลิกเลือก"
     },
     "panel": {
       "coordinates_header": "พิกัด",
       "zone_info_header": "ข้อมูลโซน",
       "no_coordinates": "ยังไม่มีพิกัด",
       "footer_remove_hint": "กด {key_x} เพื่อลบพิกัดล่าสุด",
+      "footer_selected_hint": "เลือกจุด {index} — F เพื่อย้าย, DEL เพื่อลบ",
       "center_label": "จุดศูนย์กลาง",
       "radius_label": "รัศมี",
       "no_center": "ยังไม่ได้ตั้งจุดศูนย์กลาง",

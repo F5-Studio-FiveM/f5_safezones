@@ -356,7 +356,7 @@ RegisterNUICallback('startPolygonCreator', function(data, cb)
         UI.CloseAdminPanel()
     end
 
-    Safezone.ZoneCreator.StartFromNui(data.zoneSettings)
+    Safezone.ZoneCreator.StartFromNui(data.zoneSettings, data.existingPoints)
     cb({ ok = true })
 end)
 
@@ -380,7 +380,7 @@ RegisterNUICallback('startCircleCreator', function(data, cb)
         UI.CloseAdminPanel()
     end
 
-    Safezone.CircleCreator.StartFromNui(data.zoneSettings)
+    Safezone.CircleCreator.StartFromNui(data.zoneSettings, data.existingCenter, data.existingRadius)
     cb({ ok = true })
 end)
 

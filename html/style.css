@@ -6098,6 +6098,15 @@ button:disabled {
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border-left: 3px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.creator-coord-item.selected {
+    background: rgba(76, 175, 80, 0.15);
+    border-left-color: #4CAF50;
 }
 
 .creator-coord-badge {
@@ -6112,6 +6121,11 @@ button:disabled {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.creator-coord-badge.selected {
+    background: #4CAF50;
 }
 
 .creator-coord-text {
