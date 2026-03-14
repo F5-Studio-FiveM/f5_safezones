@@ -191,9 +191,7 @@ function Safezone.EnterSafezone(zone)
     Safezone.DisableWeapons()
     Safezone.StartSafezoneRestrictions()
 
-    if not zone.collisionDisabled then
-        Safezone.Collision.StartCollisionSystem()
-    end
+    Safezone.Collision.StartCollisionSystem()
 
     TriggerServerEvent('f5_safezones:requestPlayersInZone', zone.name)
 end
@@ -217,7 +215,9 @@ function Safezone.ExitSafezone()
     Safezone.Collision.RestoreAllCollisions()
 
     SetTimeout(500, function()
-        Safezone.Collision.RestoreAllCollisions()
+        if not Safezone.State.isInSafezone then
+            Safezone.Collision.RestoreAllCollisions()
+        end
     end)
 
     Safezone.EnableWeapons()
@@ -357,16 +357,31 @@ end
 
 function Safezone.RestorePlayerFromSafezoneMode()
     Safezone.UpdatePlayerCache()
+    local ped = Safezone.Player.ped
+    local id = Safezone.Player.id
 
-    SetEntityCanBeDamaged(Safezone.Player.ped, true)
-    SetEntityInvincible(Safezone.Player.ped, false)
-    SetPlayerInvincible(Safezone.Player.id, false)
-    SetPedCanRagdoll(Safezone.Player.ped, true)
-    SetPedCanRagdollFromPlayerImpact(Safezone.Player.ped, true)
-    SetEntityProofs(Safezone.Player.ped, false, false, false, false, false, false, false, false)
+    SetEntityCanBeDamaged(ped, true)
+    SetEntityInvincible(ped, false)
+    SetPlayerInvincible(id, false)
+    SetPedCanRagdoll(ped, true)
+    SetPedCanRagdollFromPlayerImpact(ped, true)
+    SetEntityProofs(ped, false, false, false, false, false, false, false, false)
 
-    local vehicle = GetVehiclePedIsIn(Safezone.Player.ped, false)
-    if vehicle ~= 0 then
+    SetPedConfigFlag(ped, 32, true)
+    SetPedCanBeKnockedOffVehicle(ped, 0)
+    SetPedCanBeDraggedOut(ped, true)
+    SetPedSuffersCriticalHits(ped, true)
+
+    SetPlayerCanBeHassledByGangs(id, true)
+    SetPlayerVehicleDamageModifier(id, 1.0)
+    SetPlayerWeaponDamageModifier(id, 1.0)
+    SetPlayerMeleeWeaponDamageModifier(id, 1.0)
+
+    local vehicle = GetVehiclePedIsIn(ped, false)
+    if vehicle == 0 then
+        vehicle = GetVehiclePedIsIn(ped, true)
+    end
+    if vehicle ~= 0 and DoesEntityExist(vehicle) then
         SetEntityCanBeDamaged(vehicle, true)
         SetEntityInvincible(vehicle, false)
         SetVehicleCanBeVisiblyDamaged(vehicle, true)
@@ -410,7 +425,9 @@ RegisterNetEvent('f5_safezones:entryRejected', function()
 
     Safezone.Collision.RestoreAllCollisions()
     SetTimeout(500, function()
-        Safezone.Collision.RestoreAllCollisions()
+        if not Safezone.State.isInSafezone then
+            Safezone.Collision.RestoreAllCollisions()
+        end
     end)
 
     Safezone.EnableWeapons()
@@ -437,10 +454,20 @@ AddEventHandler('onResourceStop', function(resourceName)
     if Safezone.State.isInSafezone then
         Safezone.Collision.RestoreAllCollisions()
 
+        local myPed = PlayerPedId()
+        local myVeh = GetVehiclePedIsIn(myPed, false)
+        if myVeh == 0 then
+            myVeh = GetVehiclePedIsIn(myPed, true)
+        end
+
         local vehicles = GetGamePool('CVehicle')
         for _, vehicle in ipairs(vehicles) do
-            SetEntityNoCollisionEntity(vehicle, Safezone.Player.ped, false)
-            SetEntityNoCollisionEntity(Safezone.Player.ped, vehicle, false)
+            SetEntityNoCollisionEntity(vehicle, myPed, false)
+            SetEntityNoCollisionEntity(myPed, vehicle, false)
+            if myVeh ~= 0 and myVeh ~= vehicle then
+                SetEntityNoCollisionEntity(vehicle, myVeh, false)
+                SetEntityNoCollisionEntity(myVeh, vehicle, false)
+            end
             ResetEntityAlpha(vehicle)
             SetVehicleWeaponsDisabled(vehicle, false)
         end
@@ -450,9 +477,38 @@ AddEventHandler('onResourceStop', function(resourceName)
             if player ~= PlayerId() then
                 local ped = GetPlayerPed(player)
                 if DoesEntityExist(ped) then
-                    SetEntityNoCollisionEntity(PlayerPedId(), ped, false)
-                    SetEntityNoCollisionEntity(ped, PlayerPedId(), false)
+                    SetEntityNoCollisionEntity(myPed, ped, false)
+                    SetEntityNoCollisionEntity(ped, myPed, false)
                     ResetEntityAlpha(ped)
+                    local theirVeh = GetVehiclePedIsIn(ped, false)
+                    if theirVeh ~= 0 and DoesEntityExist(theirVeh) then
+                        SetEntityNoCollisionEntity(myPed, theirVeh, false)
+                        SetEntityNoCollisionEntity(theirVeh, myPed, false)
+                        if myVeh ~= 0 then
+                            SetEntityNoCollisionEntity(myVeh, theirVeh, false)
+                            SetEntityNoCollisionEntity(theirVeh, myVeh, false)
+                        end
+                    end
+                end
+            end
+        end
+
+        local peds = GetGamePool('CPed')
+        for _, ped in ipairs(peds) do
+            if ped ~= myPed and DoesEntityExist(ped) then
+                SetEntityNoCollisionEntity(ped, myPed, false)
+                SetEntityNoCollisionEntity(myPed, ped, false)
+            end
+        end
+
+        local objects = GetGamePool('CObject')
+        for _, obj in ipairs(objects) do
+            if DoesEntityExist(obj) then
+                SetEntityNoCollisionEntity(obj, myPed, false)
+                SetEntityNoCollisionEntity(myPed, obj, false)
+                if myVeh ~= 0 then
+                    SetEntityNoCollisionEntity(obj, myVeh, false)
+                    SetEntityNoCollisionEntity(myVeh, obj, false)
                 end
             end
         end
