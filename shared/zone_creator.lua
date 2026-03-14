@@ -285,6 +285,20 @@ if not _is_server then
         SetNuiFocus(true, false)
         SetNuiFocusKeepInput(true)
 
+        if initial_points and #initial_points >= 3 then
+            CreateThread(function()
+                Wait(800)
+                if not is_active then return end
+                for i, pt in ipairs(current_zone) do
+                    local found, gz = GetGroundZFor_3dCoord(pt.x, pt.y, 1000.0, false)
+                    if found then
+                        current_zone[i] = vector3(pt.x, pt.y, gz)
+                    end
+                end
+                send_polygon_nui_update()
+            end)
+        end
+
         local init_coords = #current_zone > 0 and serialize_points(current_zone) or {}
         cached_serialized = #current_zone > 0 and init_coords or nil
 
