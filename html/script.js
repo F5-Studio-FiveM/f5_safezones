@@ -910,9 +910,18 @@ function initializeEventListeners() {
                 };
             }
             const existingPoints = collectExistingPolygonPoints();
+            let teleportCoords = null;
+            if (SZ.state.isEditingZone && SZ.state.editingZone) {
+                const zone = SZ.state.editingZone;
+                if (zone.points && zone.points.length >= 3) {
+                    const center = getPolygonCenter(zone.points);
+                    teleportCoords = { x: center.x, y: center.y, z: (zone.minZ + zone.maxZ) / 2 };
+                }
+            }
             const result = await sendNUI('startPolygonCreator', {
                 zoneSettings: collectZoneSettings(),
-                existingPoints: existingPoints
+                existingPoints: existingPoints,
+                teleportCoords: teleportCoords
             });
             if (result && result.ok) {
                 Log('ZONE', 'info', 'Polygon creator started successfully');
@@ -947,6 +956,9 @@ function initializeEventListeners() {
             if (existingCircle) {
                 payload.existingCenter = existingCircle.center;
                 payload.existingRadius = existingCircle.radius;
+            }
+            if (SZ.state.isEditingZone && SZ.state.editingZone && SZ.state.editingZone.coords) {
+                payload.teleportCoords = SZ.state.editingZone.coords;
             }
             const result = await sendNUI('startCircleCreator', payload);
             if (result && result.ok) {

@@ -47,6 +47,7 @@ if not _is_server then
 
     local debug_preview = false
     local zone_settings = nil
+    local return_pos = nil
 
     local center_marker_color = { r = 0, g = 255, b = 0, a = 200 }
     local radius_marker_color = { r = 0, g = 200, b = 255, a = 150 }
@@ -199,10 +200,14 @@ if not _is_server then
 
         local ped = PlayerPedId()
         SetEntityCollision(ped, true, true)
-        local pos = GetEntityCoords(ped)
-        local found, ground_z = GetGroundZFor_3dCoord(pos.x, pos.y, pos.z + 2.0, 0)
-        if found then
-            SetEntityCoords(ped, pos.x, pos.y, ground_z, false, false, false, false)
+        if return_pos then
+            SetEntityCoords(ped, return_pos.x, return_pos.y, return_pos.z, false, false, false, true)
+        else
+            local pos = GetEntityCoords(ped)
+            local found, ground_z = GetGroundZFor_3dCoord(pos.x, pos.y, pos.z + 2.0, 0)
+            if found then
+                SetEntityCoords(ped, pos.x, pos.y, ground_z, false, false, false, false)
+            end
         end
         SetEntityInvincible(ped, false)
         SetEntityVisible(ped, true, false)
@@ -214,6 +219,7 @@ if not _is_server then
         fly_speed = false
         debug_preview = false
         zone_settings = nil
+        return_pos = nil
 
         SendNUIMessage({ action = 'hideCreatorOverlay' })
 
@@ -238,7 +244,7 @@ if not _is_server then
         creator_context = nil
     end
 
-    local function start_circle_creator(context, initial_center, initial_radius)
+    local function start_circle_creator(context, initial_center, initial_radius, teleport_coords)
         if is_active then
             stop_circle_creator()
             return
@@ -250,6 +256,10 @@ if not _is_server then
         is_active = true
 
         local ped = PlayerPedId()
+        return_pos = GetEntityCoords(ped)
+        if teleport_coords then
+            SetEntityCoords(ped, teleport_coords.x, teleport_coords.y, teleport_coords.z + 1.0, false, false, false, true)
+        end
         SetEntityInvincible(ped, true)
         SetEntityVisible(ped, false, false)
         FreezeEntityPosition(ped, true)
@@ -399,7 +409,7 @@ if not _is_server then
         start_circle_creator(context or 'standalone')
     end
 
-    CircleCreator.StartFromNui = function(settings, existingCenter, existingRadius)
+    CircleCreator.StartFromNui = function(settings, existingCenter, existingRadius, teleportCoords)
         zone_settings = settings
         local center = nil
         if existingCenter then
@@ -410,7 +420,11 @@ if not _is_server then
                 center = vector3(cx, cy, cz)
             end
         end
-        start_circle_creator('nui', center, tonumber(existingRadius) or 50.0)
+        local tp = nil
+        if teleportCoords and tonumber(teleportCoords.x) and tonumber(teleportCoords.y) and tonumber(teleportCoords.z) then
+            tp = { x = tonumber(teleportCoords.x), y = tonumber(teleportCoords.y), z = tonumber(teleportCoords.z) }
+        end
+        start_circle_creator('nui', center, tonumber(existingRadius) or 50.0, tp)
     end
 
     CircleCreator.IsActive = function()

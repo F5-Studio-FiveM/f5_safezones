@@ -89,6 +89,7 @@ if not _is_server then
     local zone_settings = nil
     local cached_serialized = nil
     local selected_point = nil
+    local return_pos = nil
 
     local function get_key(k)
         return _keys[k] or 0
@@ -224,10 +225,14 @@ if not _is_server then
 
         local ped = PlayerPedId()
         SetEntityCollision(ped, true, true)
-        local pos = GetEntityCoords(ped)
-        local found, ground_z = GetGroundZFor_3dCoord(pos.x, pos.y, pos.z + 2.0, 0)
-        if found then
-            SetEntityCoords(ped, pos.x, pos.y, ground_z, false, false, false, false)
+        if return_pos then
+            SetEntityCoords(ped, return_pos.x, return_pos.y, return_pos.z, false, false, false, true)
+        else
+            local pos = GetEntityCoords(ped)
+            local found, ground_z = GetGroundZFor_3dCoord(pos.x, pos.y, pos.z + 2.0, 0)
+            if found then
+                SetEntityCoords(ped, pos.x, pos.y, ground_z, false, false, false, false)
+            end
         end
         SetEntityInvincible(ped, false)
         SetEntityVisible(ped, true, false)
@@ -241,6 +246,7 @@ if not _is_server then
         cached_serialized = nil
         current_zone = {}
         selected_point = nil
+        return_pos = nil
 
         SendNUIMessage({ action = 'hideCreatorOverlay' })
 
@@ -256,7 +262,7 @@ if not _is_server then
         creator_context = nil
     end
 
-    local function start_zone_creator(context, initial_points)
+    local function start_zone_creator(context, initial_points, teleport_coords)
         if is_active then
             stop_zone_creator()
             return
@@ -268,6 +274,10 @@ if not _is_server then
         is_active = true
 
         local ped = PlayerPedId()
+        return_pos = GetEntityCoords(ped)
+        if teleport_coords then
+            SetEntityCoords(ped, teleport_coords.x, teleport_coords.y, teleport_coords.z + 1.0, false, false, false, true)
+        end
         SetEntityInvincible(ped, true)
         SetEntityVisible(ped, false, false)
         FreezeEntityPosition(ped, true)
@@ -399,7 +409,7 @@ if not _is_server then
         end)
     end
 
-    ZoneCreator.StartFromNui = function(settings, existingPoints)
+    ZoneCreator.StartFromNui = function(settings, existingPoints, teleportCoords)
         zone_settings = settings
         local points = nil
         if existingPoints and type(existingPoints) == 'table' and #existingPoints >= 3 then
@@ -408,7 +418,11 @@ if not _is_server then
                 points[i] = vector3(tonumber(pt.x) or 0, tonumber(pt.y) or 0, tonumber(pt.z) or 0)
             end
         end
-        start_zone_creator('nui', points)
+        local tp = nil
+        if teleportCoords and tonumber(teleportCoords.x) and tonumber(teleportCoords.y) and tonumber(teleportCoords.z) then
+            tp = { x = tonumber(teleportCoords.x), y = tonumber(teleportCoords.y), z = tonumber(teleportCoords.z) }
+        end
+        start_zone_creator('nui', points, tp)
     end
 
     ZoneCreator.IsActive = function()
