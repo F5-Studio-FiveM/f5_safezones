@@ -421,7 +421,7 @@
       "slow": "Yavaş",
       "speed": "Hızlı",
       "add_coordinate": "Koordinat Ekle",
-      "remove_coordinate": "Koordinat Kaldır",
+      "remove_coordinate": "Son Koordinatı Kaldır",
       "debug": "Hata Ayıklama",
       "complete": "Tamamla",
       "exit": "Çıkış",

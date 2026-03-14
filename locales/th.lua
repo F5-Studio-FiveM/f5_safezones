@@ -91,4 +91,22 @@ Locales_th = {
     creator_need_3_points = "ต้องมีอย่างน้อย 3 จุดเพื่อบันทึกโซน",
     creator_circle_confirmed = "ยืนยันโซนวงกลม - จุดศูนย์กลาง: %.2f, %.2f, %.2f | รัศมี: %.1f ม.",
     creator_circle_need_center = "ตั้งจุดศูนย์กลางก่อน (กด F)",
+
+    -- Creator notifications
+    creator_notif_point_added = "Point %d added",
+    creator_notif_point_removed = "Last point removed (%d remaining)",
+    creator_notif_point_moved = "Point %d moved",
+    creator_notif_point_selected = "Point %d selected",
+    creator_notif_point_deselected = "Point deselected",
+    creator_notif_point_deleted = "Point %d deleted (%d remaining)",
+    creator_notif_point_delete_min = "Cannot delete - minimum 3 points required",
+    creator_notif_no_points = "No points to select",
+    creator_notif_no_surface = "No surface found - aim at the ground",
+    creator_notif_need_3_confirm = "Need at least 3 points to confirm",
+    creator_notif_debug_on = "Debug preview ON",
+    creator_notif_debug_off = "Debug preview OFF",
+    creator_notif_center_set = "Center point set",
+    creator_notif_center_reset = "Center point reset",
+    creator_notif_radius_set = "Radius set to %.1f m",
+    creator_notif_need_center = "Set center point first (F)",
 }

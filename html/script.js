@@ -5773,6 +5773,10 @@ window.addEventListener('message', (event) => {
             }
             break;
 
+        case 'creatorNotify':
+            showNotification(data.message, data.type || 'info');
+            break;
+
         case 'showCreatorOverlay':
             showCreatorOverlay(data);
             break;

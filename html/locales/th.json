@@ -421,7 +421,7 @@
       "slow": "ช้า",
       "speed": "เร็ว",
       "add_coordinate": "เพิ่มพิกัด",
-      "remove_coordinate": "ลบพิกัด",
+      "remove_coordinate": "ลบพิกัดล่าสุด",
       "debug": "ดีบัก",
       "complete": "เสร็จสิ้น",
       "exit": "ออก",

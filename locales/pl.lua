@@ -91,4 +91,22 @@ Locales_pl = {
     creator_need_3_points = "Potrzeba co najmniej 3 punktów, aby zapisać strefę.",
     creator_circle_confirmed = "Strefa kołowa potwierdzona - Środek: %.2f, %.2f, %.2f | Promień: %.1f m",
     creator_circle_need_center = "Najpierw ustaw punkt środkowy (naciśnij F)",
+
+    -- Creator notifications
+    creator_notif_point_added = "Dodano punkt %d",
+    creator_notif_point_removed = "Usunięto ostatni punkt (pozostało %d)",
+    creator_notif_point_moved = "Przesunięto punkt %d",
+    creator_notif_point_selected = "Zaznaczono punkt %d",
+    creator_notif_point_deselected = "Odznaczono punkt",
+    creator_notif_point_deleted = "Usunięto punkt %d (pozostało %d)",
+    creator_notif_point_delete_min = "Nie można usunąć - wymagane minimum 3 punkty",
+    creator_notif_no_points = "Brak punktów do zaznaczenia",
+    creator_notif_no_surface = "Nie znaleziono powierzchni - celuj w ziemię",
+    creator_notif_need_3_confirm = "Potrzeba co najmniej 3 punktów do potwierdzenia",
+    creator_notif_debug_on = "Podgląd debug WŁĄCZONY",
+    creator_notif_debug_off = "Podgląd debug WYŁĄCZONY",
+    creator_notif_center_set = "Ustawiono punkt środkowy",
+    creator_notif_center_reset = "Zresetowano punkt środkowy",
+    creator_notif_radius_set = "Promień ustawiony na %.1f m",
+    creator_notif_need_center = "Najpierw ustaw środek (F)",
 }

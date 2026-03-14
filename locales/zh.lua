@@ -91,4 +91,22 @@ Locales_zh = {
     creator_need_3_points = "至少需要 3 个点才能保存区域。",
     creator_circle_confirmed = "圆形区域已确认 - 中心: %.2f, %.2f, %.2f | 半径: %.1f 米",
     creator_circle_need_center = "请先设置中心点（按 F）",
+
+    -- Creator notifications
+    creator_notif_point_added = "Point %d added",
+    creator_notif_point_removed = "Last point removed (%d remaining)",
+    creator_notif_point_moved = "Point %d moved",
+    creator_notif_point_selected = "Point %d selected",
+    creator_notif_point_deselected = "Point deselected",
+    creator_notif_point_deleted = "Point %d deleted (%d remaining)",
+    creator_notif_point_delete_min = "Cannot delete - minimum 3 points required",
+    creator_notif_no_points = "No points to select",
+    creator_notif_no_surface = "No surface found - aim at the ground",
+    creator_notif_need_3_confirm = "Need at least 3 points to confirm",
+    creator_notif_debug_on = "Debug preview ON",
+    creator_notif_debug_off = "Debug preview OFF",
+    creator_notif_center_set = "Center point set",
+    creator_notif_center_reset = "Center point reset",
+    creator_notif_radius_set = "Radius set to %.1f m",
+    creator_notif_need_center = "Set center point first (F)",
 }

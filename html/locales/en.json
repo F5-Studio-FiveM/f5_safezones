@@ -421,7 +421,7 @@
       "slow": "Slow",
       "speed": "Speed",
       "add_coordinate": "Add Coordinate",
-      "remove_coordinate": "Remove Coordinate",
+      "remove_coordinate": "Remove Last Coordinate",
       "debug": "Debug",
       "complete": "Complete",
       "exit": "Exit",

@@ -49,6 +49,14 @@ if not _is_server then
     local zone_settings = nil
     local return_pos = nil
 
+    local last_notif = 0
+    local function notify(msg, ntype)
+        local now = GetGameTimer()
+        if now - last_notif < 300 then return end
+        last_notif = now
+        SendNUIMessage({ action = 'creatorNotify', message = msg, type = ntype or 'info' })
+    end
+
     local center_marker_color = { r = 0, g = 255, b = 0, a = 200 }
     local radius_marker_color = { r = 0, g = 200, b = 255, a = 150 }
     local preview_line_color = { r = 255, g = 255, b = 0, a = 255 }
@@ -347,14 +355,19 @@ if not _is_server then
                     if hit then
                         center_point = hit
                         send_circle_nui_update()
+                        notify(Translate('creator_notif_center_set'), 'success')
+                    else
+                        notify(Translate('creator_notif_no_surface'), 'error')
                     end
 
                 elseif IsDisabledControlJustPressed(0, get_key("x")) and center_point then
                     center_point = nil
                     send_circle_nui_update()
+                    notify(Translate('creator_notif_center_reset'))
 
                 elseif IsDisabledControlJustPressed(0, get_key("g")) then
                     debug_preview = not debug_preview
+                    notify(debug_preview and Translate('creator_notif_debug_on') or Translate('creator_notif_debug_off'))
 
                 elseif IsDisabledControlJustPressed(0, get_key("r")) and center_point then
                     local hit = get_aim_coord()
@@ -363,6 +376,7 @@ if not _is_server then
                         dist = math.max(min_radius, math.min(max_radius, dist))
                         current_radius = dist
                         send_circle_nui_update()
+                        notify(Translate('creator_notif_radius_set'):format(current_radius), 'success')
                     end
 
                 elseif center_point then
@@ -395,7 +409,7 @@ if not _is_server then
                             center_point.x, center_point.y, center_point.z, current_radius))
                         stop_circle_creator({ completed = true, center = center_point, radius = current_radius })
                     else
-                        print(Translate('creator_circle_need_center'))
+                        notify(Translate('creator_notif_need_center'), 'error')
                     end
 
                 elseif IsDisabledControlJustPressed(0, get_key("backspace")) then

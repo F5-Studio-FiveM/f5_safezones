@@ -91,4 +91,22 @@ Locales_es = {
     creator_need_3_points = "Se necesitan al menos 3 puntos para guardar la zona.",
     creator_circle_confirmed = "Zona circular confirmada - Centro: %.2f, %.2f, %.2f | Radio: %.1f m",
     creator_circle_need_center = "Establece un punto central primero (presiona F)",
+
+    -- Creator notifications
+    creator_notif_point_added = "Punto %d añadido",
+    creator_notif_point_removed = "Último punto eliminado (%d restantes)",
+    creator_notif_point_moved = "Punto %d movido",
+    creator_notif_point_selected = "Punto %d seleccionado",
+    creator_notif_point_deselected = "Punto deseleccionado",
+    creator_notif_point_deleted = "Punto %d eliminado (%d restantes)",
+    creator_notif_point_delete_min = "No se puede eliminar - se requieren mínimo 3 puntos",
+    creator_notif_no_points = "No hay puntos para seleccionar",
+    creator_notif_no_surface = "No se encontró superficie - apunta al suelo",
+    creator_notif_need_3_confirm = "Se necesitan al menos 3 puntos para confirmar",
+    creator_notif_debug_on = "Vista previa debug ACTIVADA",
+    creator_notif_debug_off = "Vista previa debug DESACTIVADA",
+    creator_notif_center_set = "Punto central establecido",
+    creator_notif_center_reset = "Punto central restablecido",
+    creator_notif_radius_set = "Radio establecido en %.1f m",
+    creator_notif_need_center = "Primero establece el centro (F)",
 }

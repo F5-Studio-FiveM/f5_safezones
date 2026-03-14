@@ -89,6 +89,14 @@ if not _is_server then
     local zone_settings = nil
     local cached_serialized = nil
     local selected_point = nil
+
+    local last_notif = 0
+    local function notify(msg, ntype)
+        local now = GetGameTimer()
+        if now - last_notif < 300 then return end
+        last_notif = now
+        SendNUIMessage({ action = 'creatorNotify', message = msg, type = ntype or 'info' })
+    end
     local return_pos = nil
 
     local function get_key(k)
@@ -346,6 +354,7 @@ if not _is_server then
                     if selected_point then
                         selected_point = nil
                         send_polygon_nui_update()
+                        notify(Translate('creator_notif_point_deselected'))
                     end
 
                 elseif IsDisabledControlJustPressed(0, get_key("tab")) then
@@ -356,6 +365,9 @@ if not _is_server then
                             selected_point = selected_point % #current_zone + 1
                         end
                         send_polygon_nui_update()
+                        notify(Translate('creator_notif_point_selected'):format(selected_point), 'info')
+                    else
+                        notify(Translate('creator_notif_no_points'), 'error')
                     end
 
                 elseif IsDisabledControlJustPressed(0, get_key("f")) then
@@ -363,11 +375,15 @@ if not _is_server then
                     if hit then
                         if selected_point and selected_point <= #current_zone then
                             current_zone[selected_point] = hit
+                            notify(Translate('creator_notif_point_moved'):format(selected_point), 'success')
                         else
                             current_zone[#current_zone + 1] = hit
                             selected_point = nil
+                            notify(Translate('creator_notif_point_added'):format(#current_zone), 'success')
                         end
                         send_polygon_nui_update()
+                    else
+                        notify(Translate('creator_notif_no_surface'), 'error')
                     end
 
                 elseif IsDisabledControlJustPressed(0, get_key("x")) then
@@ -377,19 +393,27 @@ if not _is_server then
                             selected_point = nil
                         end
                         send_polygon_nui_update()
+                        notify(Translate('creator_notif_point_removed'):format(#current_zone))
                     end
 
                 elseif IsDisabledControlJustPressed(0, get_key("delete")) then
-                    if selected_point and selected_point <= #current_zone and #current_zone > 3 then
-                        table.remove(current_zone, selected_point)
-                        if selected_point > #current_zone then
-                            selected_point = #current_zone
+                    if selected_point and selected_point <= #current_zone then
+                        if #current_zone > 3 then
+                            local deleted = selected_point
+                            table.remove(current_zone, selected_point)
+                            if selected_point > #current_zone then
+                                selected_point = #current_zone
+                            end
+                            send_polygon_nui_update()
+                            notify(Translate('creator_notif_point_deleted'):format(deleted, #current_zone), 'success')
+                        else
+                            notify(Translate('creator_notif_point_delete_min'), 'error')
                         end
-                        send_polygon_nui_update()
                     end
 
                 elseif IsDisabledControlJustPressed(0, get_key("g")) then
                     debug_preview = not debug_preview
+                    notify(debug_preview and Translate('creator_notif_debug_on') or Translate('creator_notif_debug_off'))
 
                 elseif IsDisabledControlJustPressed(0, get_key("enter")) then
                     if #current_zone >= 3 then
@@ -420,7 +444,7 @@ if not _is_server then
                             send_polygon_nui_update()
                         end
                     else
-                        print(Translate('creator_need_3_points'))
+                        notify(Translate('creator_notif_need_3_confirm'), 'error')
                     end
 
                 elseif IsDisabledControlJustPressed(0, get_key("backspace")) then

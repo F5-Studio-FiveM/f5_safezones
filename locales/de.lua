@@ -91,4 +91,22 @@ Locales_de = {
     creator_need_3_points = "Mindestens 3 Punkte erforderlich, um die Zone zu speichern.",
     creator_circle_confirmed = "Kreiszone bestätigt - Mitte: %.2f, %.2f, %.2f | Radius: %.1f m",
     creator_circle_need_center = "Zuerst einen Mittelpunkt setzen (F drücken)",
+
+    -- Creator notifications
+    creator_notif_point_added = "Punkt %d hinzugefügt",
+    creator_notif_point_removed = "Letzter Punkt entfernt (%d übrig)",
+    creator_notif_point_moved = "Punkt %d verschoben",
+    creator_notif_point_selected = "Punkt %d ausgewählt",
+    creator_notif_point_deselected = "Punkt abgewählt",
+    creator_notif_point_deleted = "Punkt %d gelöscht (%d übrig)",
+    creator_notif_point_delete_min = "Löschen nicht möglich - mindestens 3 Punkte erforderlich",
+    creator_notif_no_points = "Keine Punkte zum Auswählen",
+    creator_notif_no_surface = "Keine Oberfläche gefunden - auf den Boden zielen",
+    creator_notif_need_3_confirm = "Mindestens 3 Punkte zum Bestätigen erforderlich",
+    creator_notif_debug_on = "Debug-Vorschau AN",
+    creator_notif_debug_off = "Debug-Vorschau AUS",
+    creator_notif_center_set = "Mittelpunkt gesetzt",
+    creator_notif_center_reset = "Mittelpunkt zurückgesetzt",
+    creator_notif_radius_set = "Radius auf %.1f m gesetzt",
+    creator_notif_need_center = "Zuerst Mittelpunkt setzen (F)",
 }

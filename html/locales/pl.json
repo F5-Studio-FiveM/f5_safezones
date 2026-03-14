@@ -421,7 +421,7 @@
       "slow": "Wolno",
       "speed": "Szybko",
       "add_coordinate": "Dodaj Współrzędną",
-      "remove_coordinate": "Usuń Współrzędną",
+      "remove_coordinate": "Usuń Ostatnią Współrzędną",
       "debug": "Debug",
       "complete": "Zakończ",
       "exit": "Wyjdź",

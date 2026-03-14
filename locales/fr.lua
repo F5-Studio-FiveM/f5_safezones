@@ -91,4 +91,22 @@ Locales_fr = {
     creator_need_3_points = "Au moins 3 points sont nécessaires pour sauvegarder la zone.",
     creator_circle_confirmed = "Zone circulaire confirmée - Centre : %.2f, %.2f, %.2f | Rayon : %.1f m",
     creator_circle_need_center = "Définissez d'abord un point central (appuyez sur F)",
+
+    -- Creator notifications
+    creator_notif_point_added = "Point %d ajouté",
+    creator_notif_point_removed = "Dernier point supprimé (%d restants)",
+    creator_notif_point_moved = "Point %d déplacé",
+    creator_notif_point_selected = "Point %d sélectionné",
+    creator_notif_point_deselected = "Point désélectionné",
+    creator_notif_point_deleted = "Point %d supprimé (%d restants)",
+    creator_notif_point_delete_min = "Impossible de supprimer - minimum 3 points requis",
+    creator_notif_no_points = "Aucun point à sélectionner",
+    creator_notif_no_surface = "Aucune surface trouvée - visez le sol",
+    creator_notif_need_3_confirm = "Au moins 3 points nécessaires pour confirmer",
+    creator_notif_debug_on = "Aperçu debug ACTIVÉ",
+    creator_notif_debug_off = "Aperçu debug DÉSACTIVÉ",
+    creator_notif_center_set = "Point central défini",
+    creator_notif_center_reset = "Point central réinitialisé",
+    creator_notif_radius_set = "Rayon défini à %.1f m",
+    creator_notif_need_center = "D'abord définir le centre (F)",
 }

@@ -421,7 +421,7 @@
       "slow": "慢速",
       "speed": "快速",
       "add_coordinate": "添加坐标",
-      "remove_coordinate": "移除坐标",
+      "remove_coordinate": "删除最后坐标",
       "debug": "调试",
       "complete": "完成",
       "exit": "退出",

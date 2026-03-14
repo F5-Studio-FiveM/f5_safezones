@@ -421,7 +421,7 @@
       "slow": "Langzaam",
       "speed": "Snel",
       "add_coordinate": "Coördinaat Toevoegen",
-      "remove_coordinate": "Coördinaat Verwijderen",
+      "remove_coordinate": "Laatste Coördinaat Verwijderen",
       "debug": "Debug",
       "complete": "Voltooien",
       "exit": "Afsluiten",
