@@ -238,7 +238,7 @@ Config.Logging = {
 -- VERSION CHECK
 -- ================================
 Config.VersionCheck = true -- Check for updates on server start via GitHub Releases API
-Config.GitHubRepo = 'F5StudioFiveM/f5_safezones' -- GitHub repository (owner/repo)
+Config.GitHubRepo = 'F5-Studio-FiveM/f5_safezones' -- GitHub repository (owner/repo)
 
 -- ================================
 -- SYSTEM DEBUGGING
