@@ -4,9 +4,9 @@
 
 <br /><br />
 
-<a href="https://github.com/F5StudioFiveM/f5_safezones/releases"><img src="https://img.shields.io/github/v/release/F5StudioFiveM/f5_safezones?label=&style=for-the-badge&color=f5a623&labelColor=16161d" alt="Version" /></a>&nbsp;
-<a href="https://github.com/F5StudioFiveM/f5_safezones/releases"><img src="https://img.shields.io/github/downloads/F5StudioFiveM/f5_safezones/total?label=downloads&style=for-the-badge&color=16161d&labelColor=16161d" alt="Downloads" /></a>&nbsp;
-<a href="https://github.com/F5StudioFiveM/f5_safezones/stargazers"><img src="https://img.shields.io/github/stars/F5StudioFiveM/f5_safezones?label=stars&style=for-the-badge&color=16161d&labelColor=16161d" alt="Stars" /></a>&nbsp;
+<a href="https://github.com/F5-Studio-FiveM/f5_safezones/releases"><img src="https://img.shields.io/github/v/release/F5-Studio-FiveM/f5_safezones?label=&style=for-the-badge&color=f5a623&labelColor=16161d" alt="Version" /></a>&nbsp;
+<a href="https://github.com/F5-Studio-FiveM/f5_safezones/releases"><img src="https://img.shields.io/github/downloads/F5-Studio-FiveM/f5_safezones/total?label=downloads&style=for-the-badge&color=16161d&labelColor=16161d" alt="Downloads" /></a>&nbsp;
+<a href="https://github.com/F5-Studio-FiveM/f5_safezones/stargazers"><img src="https://img.shields.io/github/stars/F5-Studio-FiveM/f5_safezones?label=stars&style=for-the-badge&color=16161d&labelColor=16161d" alt="Stars" /></a>&nbsp;
 <a href="https://dc.f5stud.io"><img src="https://img.shields.io/discord/1396957541530865927?label=discord&style=for-the-badge&color=5865F2&labelColor=16161d" alt="Discord" /></a>
 
 <br /><br />
@@ -23,7 +23,7 @@ Drop it in, ensure, and play. No config needed, no SQL, no Keymaster.
 
 <br />
 
-[**Read the Docs**](https://docs.f5stud.io/docs/f5-safezones/installation) &nbsp;&nbsp;&middot;&nbsp;&nbsp; [**Join Discord**](https://dc.f5stud.io) &nbsp;&nbsp;&middot;&nbsp;&nbsp; [**Report a Bug**](https://github.com/F5StudioFiveM/f5_safezones/issues)
+[**Read the Docs**](https://docs.f5stud.io/docs/f5-safezones/installation) &nbsp;&nbsp;&middot;&nbsp;&nbsp; [**Join Discord**](https://dc.f5stud.io) &nbsp;&nbsp;&middot;&nbsp;&nbsp; [**Report a Bug**](https://github.com/F5-Studio-FiveM/f5_safezones/issues)
 
 </div>
 
@@ -86,7 +86,7 @@ Drop it in, ensure, and play. No config needed, no SQL, no Keymaster.
 
 ```bash
 cd resources/[f5]
-git clone https://github.com/F5StudioFiveM/f5_safezones.git
+git clone https://github.com/F5-Studio-FiveM/f5_safezones.git
 ```
 
 Add to `server.cfg`:
@@ -189,8 +189,8 @@ exports['f5_safezones']:GetPlayersInSpecificZone(zoneName)
 
 This project is open source and we'd love your help to make it better.
 
-- **Report bugs** by opening an [issue](https://github.com/F5StudioFiveM/f5_safezones/issues)
-- **Suggest features** or improvements via [issues](https://github.com/F5StudioFiveM/f5_safezones/issues) or [Discord](https://dc.f5stud.io)
+- **Report bugs** by opening an [issue](https://github.com/F5-Studio-FiveM/f5_safezones/issues)
+- **Suggest features** or improvements via [issues](https://github.com/F5-Studio-FiveM/f5_safezones/issues) or [Discord](https://dc.f5stud.io)
 - **Submit pull requests** with bug fixes, new features, or optimizations
 - **Add translations** by creating a new locale file in the `locales/` folder
 - **Share the project** by starring the repo and spreading the word
