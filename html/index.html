@@ -1180,6 +1180,39 @@
                                     </div>
                                 </div>
 
+                                <div class="f-panel mt-xl" id="jobOverridesPanel">
+                                    <h4 class="f-panel__title">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                            <path d="M16 21V19A4 4 0 0012 15H8A4 4 0 004 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <circle cx="10" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                            <path d="M22 21V19A4 4 0 0018 15.87" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M18 7.13A4 4 0 0118.87 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        <span data-i18n="form.job_overrides">Job Overrides</span>
+                                    </h4>
+
+                                    <label class="f-toggle">
+                                        <input type="checkbox" id="jobOverridesEnabled" />
+                                        <span class="f-toggle__track"></span>
+                                        <div class="f-toggle__content">
+                                            <span class="f-toggle__label" data-i18n="form.job_overrides_enable">Enable Job Overrides</span>
+                                            <p class="f-toggle__desc" data-i18n="form.job_overrides_enable_desc">Override zone protections for specific jobs</p>
+                                        </div>
+                                    </label>
+
+                                    <div class="job-overrides-content hidden" id="jobOverridesContent">
+                                        <div class="job-entries mt-lg" id="jobEntries">
+                                        </div>
+
+                                        <button type="button" class="btn btn-secondary mt-lg" id="addJobEntry">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                            </svg>
+                                            <span data-i18n="form.job_add">Add Job</span>
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <div class="form-actions">
                                     <button type="button" class="btn btn-secondary" id="cancelCreate"
                                         data-i18n="form.cancel">Cancel</button>

@@ -21,6 +21,14 @@ local function initQBCore()
         return false
     end
 
+    Framework.GetPlayerJob = function(source)
+        local player = QBCore.Functions.GetPlayer(source)
+        if player and player.PlayerData and player.PlayerData.job then
+            return { name = player.PlayerData.job.name or 'unemployed', grade = player.PlayerData.job.grade and player.PlayerData.job.grade.level or 0 }
+        end
+        return { name = 'unemployed', grade = 0 }
+    end
+
     Framework.Log('success', 'QBCore server bridge initialized')
     Framework.Log('debug', 'Admin detection: QBCore.Functions.HasPermission (admin, god)')
     return true
@@ -43,6 +51,14 @@ local function initQBox()
     -- QBox relies on ACE permissions which are checked separately in Admin.IsPlayerAdmin
     Framework.IsAdmin = function()
         return false
+    end
+
+    Framework.GetPlayerJob = function(source)
+        local player = exports['qbx_core']:GetPlayer(source)
+        if player and player.PlayerData and player.PlayerData.job then
+            return { name = player.PlayerData.job.name or 'unemployed', grade = player.PlayerData.job.grade and player.PlayerData.job.grade.level or 0 }
+        end
+        return { name = 'unemployed', grade = 0 }
     end
 
     Framework.Log('success', 'QBox server bridge initialized')
@@ -74,6 +90,14 @@ local function initESX()
         return false
     end
 
+    Framework.GetPlayerJob = function(source)
+        local xPlayer = ESX.GetPlayerFromId(source)
+        if xPlayer and xPlayer.job then
+            return { name = xPlayer.job.name or 'unemployed', grade = xPlayer.job.grade or 0 }
+        end
+        return { name = 'unemployed', grade = 0 }
+    end
+
     Framework.Log('success', 'ESX server bridge initialized')
     Framework.Log('debug', 'Admin detection: xPlayer.getGroup() (admin, superadmin)')
     return true
@@ -82,6 +106,7 @@ end
 local function setNoopFunctions()
     Framework.GetPlayer = function() return nil end
     Framework.IsAdmin = function() return false end
+    Framework.GetPlayerJob = function() return { name = 'unemployed', grade = 0 } end
 end
 
 CreateThread(function()

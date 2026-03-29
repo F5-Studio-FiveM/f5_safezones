@@ -387,11 +387,21 @@ end)
 RegisterNUICallback('createZone', function(data, cb)
     TriggerServerEvent('f5_safezones:createZone', data.zoneData)
     cb('ok')
+    SetTimeout(2000, function()
+        if nuiOpen then
+            TriggerServerEvent('f5_safezones:requestAdminData', 'refresh')
+        end
+    end)
 end)
 
 RegisterNUICallback('updateZone', function(data, cb)
     TriggerServerEvent('f5_safezones:updateZone', data.zoneData)
     cb('ok')
+    SetTimeout(2000, function()
+        if nuiOpen then
+            TriggerServerEvent('f5_safezones:requestAdminData', 'refresh')
+        end
+    end)
 end)
 
 RegisterNUICallback('deleteZone', function(data, cb)

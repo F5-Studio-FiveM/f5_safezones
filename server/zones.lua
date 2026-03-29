@@ -62,6 +62,34 @@ local function parseBoolean(value, default)
     return default
 end
 
+local function validateJobOverrides(data)
+    if type(data) ~= 'table' then
+        return { enabled = false, jobs = {} }
+    end
+
+    local jobs = {}
+    if type(data.jobs) == 'table' then
+        for _, job in ipairs(data.jobs) do
+            if type(job) == 'table' and type(job.name) == 'string' and #job.name > 0 then
+                table.insert(jobs, {
+                    name = job.name:lower():gsub('%s+', ''),
+                    minGrade = math.max(0, math.floor(tonumber(job.minGrade) or 0)),
+                    enableInvincibility = parseBoolean(job.enableInvincibility, true),
+                    enableGhosting = parseBoolean(job.enableGhosting, true),
+                    preventVehicleDamage = parseBoolean(job.preventVehicleDamage, true),
+                    disableVehicleWeapons = parseBoolean(job.disableVehicleWeapons, true),
+                    disableWeapons = parseBoolean(job.disableWeapons, true)
+                })
+            end
+        end
+    end
+
+    return {
+        enabled = parseBoolean(data.enabled, false),
+        jobs = jobs
+    }
+end
+
 local function normalizeInvincibilityOption(zoneData)
     if type(zoneData) ~= 'table' then
         return
@@ -524,7 +552,8 @@ RegisterNetEvent('f5_safezones:createZone', function(zoneData)
         collisionDisabled = zoneData.collisionDisabled == true,
         createdBy = GetPlayerName(src),
         createdAt = os.time(),
-        renderDistance = tonumber(zoneData.renderDistance) or 150.0
+        renderDistance = tonumber(zoneData.renderDistance) or 150.0,
+        jobOverrides = validateJobOverrides(zoneData.jobOverrides)
     }
 
     if zoneData.markerConfig then
@@ -815,7 +844,8 @@ RegisterNetEvent('f5_safezones:updateZone', function(zoneData)
         createdAt = oldZone.createdAt or os.time(),
         updatedBy = GetPlayerName(src),
         updatedAt = os.time(),
-        renderDistance = tonumber(zoneData.renderDistance) or oldZone.renderDistance or 150.0
+        renderDistance = tonumber(zoneData.renderDistance) or oldZone.renderDistance or 150.0,
+        jobOverrides = validateJobOverrides(zoneData.jobOverrides)
     }
 
     if zoneData.markerConfig then

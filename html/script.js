@@ -815,7 +815,9 @@ function initializeElements() {
         'outlinePickerNative', 'outlinePickerHexInput',
         'outlineSliderR', 'outlineSliderG', 'outlineSliderB',
         'outlineValueR', 'outlineValueG', 'outlineValueB',
-        'outlinePickerCancel', 'outlinePickerConfirm'
+        'outlinePickerCancel', 'outlinePickerConfirm',
+        'jobOverridesEnabled', 'jobOverridesContent',
+        'jobEntries', 'addJobEntry'
     ];
 
     ids.forEach(id => {
@@ -1180,6 +1182,19 @@ function initializeEventListeners() {
             SZ.elements.renderDistanceRange.value = e.target.value;
             updateSliderFill(SZ.elements.renderDistanceRange);
         });
+    }
+
+    if (SZ.elements.jobOverridesEnabled) {
+        SZ.elements.jobOverridesEnabled.addEventListener('change', (e) => {
+            const content = SZ.elements.jobOverridesContent;
+            if (content) {
+                content.classList.toggle('hidden', !e.target.checked);
+            }
+        });
+    }
+
+    if (SZ.elements.addJobEntry) {
+        SZ.elements.addJobEntry.addEventListener('click', () => addJobEntryRow());
     }
 
 
@@ -2517,6 +2532,7 @@ function hideCreateForm() {
         SZ.elements.createZoneForm.reset();
         SZ.elements.radiusRange.value = 50;
         clearPolygonPoints();
+        resetJobOverrides();
 
         document.getElementById('editingZoneId').value = '';
         document.getElementById('editingZoneName').value = '';
@@ -2626,6 +2642,150 @@ function initializePolygonPoints() {
     for (let i = 0; i < 3; i++) {
         addPolygonPoint();
     }
+}
+
+function addJobEntryRow(data) {
+    const container = SZ.elements.jobEntries;
+    if (!container) return;
+
+    const d = data || {};
+    const jobName = d.name || '';
+    const minGrade = d.minGrade !== undefined ? d.minGrade : 0;
+    const invincibility = d.enableInvincibility !== undefined ? d.enableInvincibility : true;
+    const ghosting = d.enableGhosting !== undefined ? d.enableGhosting : true;
+    const vehicleDamage = d.preventVehicleDamage !== undefined ? d.preventVehicleDamage : true;
+    const vehicleWeapons = d.disableVehicleWeapons !== undefined ? d.disableVehicleWeapons : true;
+    const disableWeapons = d.disableWeapons !== undefined ? d.disableWeapons : true;
+
+    const index = container.querySelectorAll('.job-entry').length;
+    const row = document.createElement('div');
+    row.className = 'job-entry';
+    row.dataset.index = index;
+    row.innerHTML = `
+        <div class="job-entry-header">
+            <div class="f-group">
+                <label>${SZ.Localization.t('form.job_name_label')}</label>
+                <input type="text" class="f-input" data-job-field="name" value="${jobName}" placeholder="${SZ.Localization.t('form.job_name_placeholder')}" />
+            </div>
+            <div class="f-group">
+                <label>${SZ.Localization.t('form.job_min_grade')}</label>
+                <input type="number" class="f-input" data-job-field="minGrade" min="0" max="99" value="${minGrade}" />
+            </div>
+            <button type="button" class="job-entry-remove" title="${SZ.Localization.t('form.job_remove')}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="job-entry-toggles">
+            <label class="f-toggle">
+                <input type="checkbox" data-job-field="enableInvincibility" ${invincibility ? 'checked' : ''} />
+                <span class="f-toggle__track"></span>
+                <div class="f-toggle__content">
+                    <span class="f-toggle__label">${SZ.Localization.t('form.job_invincibility')}</span>
+                </div>
+            </label>
+            <label class="f-toggle">
+                <input type="checkbox" data-job-field="enableGhosting" ${ghosting ? 'checked' : ''} />
+                <span class="f-toggle__track"></span>
+                <div class="f-toggle__content">
+                    <span class="f-toggle__label">${SZ.Localization.t('form.job_ghosting')}</span>
+                </div>
+            </label>
+            <label class="f-toggle">
+                <input type="checkbox" data-job-field="preventVehicleDamage" ${vehicleDamage ? 'checked' : ''} />
+                <span class="f-toggle__track"></span>
+                <div class="f-toggle__content">
+                    <span class="f-toggle__label">${SZ.Localization.t('form.job_vehicle_damage')}</span>
+                </div>
+            </label>
+            <label class="f-toggle">
+                <input type="checkbox" data-job-field="disableVehicleWeapons" ${vehicleWeapons ? 'checked' : ''} />
+                <span class="f-toggle__track"></span>
+                <div class="f-toggle__content">
+                    <span class="f-toggle__label">${SZ.Localization.t('form.job_vehicle_weapons')}</span>
+                </div>
+            </label>
+            <label class="f-toggle">
+                <input type="checkbox" data-job-field="disableWeapons" ${disableWeapons ? 'checked' : ''} />
+                <span class="f-toggle__track"></span>
+                <div class="f-toggle__content">
+                    <span class="f-toggle__label">${SZ.Localization.t('form.job_weapons')}</span>
+                </div>
+            </label>
+        </div>
+    `;
+
+    row.querySelector('.job-entry-remove').addEventListener('click', () => {
+        row.remove();
+        reindexJobEntries();
+        if (container.querySelectorAll('.job-entry').length === 0) {
+            if (SZ.elements.jobOverridesEnabled) SZ.elements.jobOverridesEnabled.checked = false;
+            if (SZ.elements.jobOverridesContent) SZ.elements.jobOverridesContent.classList.add('hidden');
+        }
+    });
+
+    container.appendChild(row);
+}
+
+function reindexJobEntries() {
+    const container = SZ.elements.jobEntries;
+    if (!container) return;
+    container.querySelectorAll('.job-entry').forEach((row, i) => {
+        row.dataset.index = i;
+    });
+}
+
+function collectJobOverrides() {
+    const enabled = SZ.elements.jobOverridesEnabled?.checked || false;
+    if (!enabled) return { enabled: false, jobs: [] };
+
+    const jobs = [];
+    const container = SZ.elements.jobEntries;
+    if (container) {
+        container.querySelectorAll('.job-entry').forEach(row => {
+            const name = (row.querySelector('[data-job-field="name"]')?.value || '').trim().toLowerCase();
+            const minGrade = parseInt(row.querySelector('[data-job-field="minGrade"]')?.value) || 0;
+            if (name) {
+                jobs.push({
+                    name,
+                    minGrade,
+                    enableInvincibility: row.querySelector('[data-job-field="enableInvincibility"]')?.checked ?? true,
+                    enableGhosting: row.querySelector('[data-job-field="enableGhosting"]')?.checked ?? true,
+                    preventVehicleDamage: row.querySelector('[data-job-field="preventVehicleDamage"]')?.checked ?? true,
+                    disableVehicleWeapons: row.querySelector('[data-job-field="disableVehicleWeapons"]')?.checked ?? true,
+                    disableWeapons: row.querySelector('[data-job-field="disableWeapons"]')?.checked ?? true
+                });
+            }
+        });
+    }
+
+    return { enabled, jobs };
+}
+
+function loadJobOverrides(jobOverrides) {
+    const container = SZ.elements.jobEntries;
+    if (container) container.innerHTML = '';
+
+    if (!jobOverrides || !jobOverrides.enabled) {
+        if (SZ.elements.jobOverridesEnabled) SZ.elements.jobOverridesEnabled.checked = false;
+        if (SZ.elements.jobOverridesContent) SZ.elements.jobOverridesContent.classList.add('hidden');
+        return;
+    }
+
+    if (SZ.elements.jobOverridesEnabled) SZ.elements.jobOverridesEnabled.checked = true;
+    if (SZ.elements.jobOverridesContent) SZ.elements.jobOverridesContent.classList.remove('hidden');
+
+    if (jobOverrides.jobs && Array.isArray(jobOverrides.jobs)) {
+        jobOverrides.jobs.forEach(job => addJobEntryRow(job));
+    }
+}
+
+function resetJobOverrides() {
+    if (SZ.elements.jobOverridesEnabled) SZ.elements.jobOverridesEnabled.checked = false;
+    if (SZ.elements.jobOverridesContent) SZ.elements.jobOverridesContent.classList.add('hidden');
+    const container = SZ.elements.jobEntries;
+    if (container) container.innerHTML = '';
 }
 
 function addPolygonPoint() {
@@ -3092,6 +3252,8 @@ async function handleCreateZone(e) {
     } else {
         formData.renderDistance = 150;
     }
+
+    formData.jobOverrides = collectJobOverrides();
 
     if (isEditing) {
         Log('ZONE', 'info', `Updating zone: "${formData.name}" (type: ${formData.type})`);
@@ -3945,7 +4107,8 @@ function handleCloneZoneAttributes() {
         collisionDisabled: zone.collisionDisabled === true,
         infiniteHeight: zone.infiniteHeight === true,
         radius: zone.radius,
-        addRoof: zone.addRoof === true
+        addRoof: zone.addRoof === true,
+        jobOverrides: zone.jobOverrides ? JSON.parse(JSON.stringify(zone.jobOverrides)) : null
     };
 
     closeZoneModal();
@@ -4126,6 +4289,8 @@ function showCreateFormWithClonedData() {
     }
 
     toggleMarkerConfig(clonedData.showMarker);
+
+    loadJobOverrides(clonedData.jobOverrides);
 
     SZ.state.clonedZoneData = null;
 }
@@ -4477,6 +4642,8 @@ function loadZoneDataToForm(zone) {
         SZ.elements.renderDistance.value = renderDist;
         SZ.elements.renderDistanceRange.value = Math.min(renderDist, 5000);
     }
+
+    loadJobOverrides(zone.jobOverrides);
 
     toggleMarkerConfig(zone.showMarker);
 }
@@ -5863,6 +6030,7 @@ function handleUpdateData(zones, players, debugState, logs, logMeta) {
     applyDebugState(debugState);
     updateHeaderStats();
     updateZoneStats();
+    updateSelectedZoneReference();
 
     if (SZ.state.currentView === 'zones' && !SZ.state.isCreatingZone) {
         renderZones();

@@ -3,7 +3,7 @@ game 'gta5'
 
 author 'F5 Studio - https://f5stud.io'
 description 'Advanced Safezone System with Zone Creation and Interactive Map'
-version '2.1.1'
+version '2.2.0'
 
 shared_scripts {
     'config.lua',

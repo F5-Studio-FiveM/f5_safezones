@@ -105,6 +105,39 @@ function Safezone.InitializeSafezones()
     Safezone.StartSafezoneLoop()
 end
 
+local function applyJobOverrides(zone)
+    local jo = zone.jobOverrides
+    if not jo or not jo.enabled then
+        return zone
+    end
+
+    if not jo.jobs or #jo.jobs == 0 then
+        return zone
+    end
+
+    local playerJob = Framework.GetPlayerJob and Framework.GetPlayerJob() or { name = 'unemployed', grade = 0 }
+    local jobName = (playerJob.name or 'unemployed'):lower()
+    local jobGrade = tonumber(playerJob.grade) or 0
+
+    for _, entry in ipairs(jo.jobs) do
+        if entry.name == jobName and jobGrade >= (entry.minGrade or 0) then
+            local overridden = {}
+            for k, v in pairs(zone) do
+                overridden[k] = v
+            end
+            overridden.enableInvincibility = entry.enableInvincibility
+            overridden.enableGhosting = entry.enableGhosting
+            overridden.preventVehicleDamage = entry.preventVehicleDamage
+            overridden.disableVehicleWeapons = entry.disableVehicleWeapons
+            overridden._disableWeapons = entry.disableWeapons
+            overridden._originalZone = zone
+            return overridden
+        end
+    end
+
+    return zone
+end
+
 function Safezone.StartSafezoneLoop()
     if Safezone.State.safezoneLoopActive then
         return
@@ -164,8 +197,8 @@ function Safezone.StartSafezoneLoop()
                     Safezone.ExitSafezone()
                     Wait(100)
                     Safezone.EnterSafezone(foundZone)
-                elseif foundZone and Safezone.State.isInSafezone and Safezone.State.currentSafezone and foundZone ~= Safezone.State.currentSafezone then
-                    Safezone.State.currentSafezone = foundZone
+                elseif foundZone and Safezone.State.isInSafezone and Safezone.State.currentSafezone and foundZone ~= (Safezone.State.currentSafezone._originalZone or Safezone.State.currentSafezone) then
+                    Safezone.State.currentSafezone = applyJobOverrides(foundZone)
                 end
             end
 
@@ -175,6 +208,8 @@ function Safezone.StartSafezoneLoop()
 end
 
 function Safezone.EnterSafezone(zone)
+    zone = applyJobOverrides(zone)
+
     Safezone.State.isInSafezone = true
     Safezone.State.currentSafezone = zone
     Safezone.ShowNotification(Translate('enter_safezone'))
@@ -188,7 +223,19 @@ function Safezone.EnterSafezone(zone)
         SetEntityAlpha(Safezone.Player.ped, Config.CollisionSystem.playerAlpha or 200, false)
     end
 
-    Safezone.DisableWeapons()
+    if isZoneInvincibilityEnabled(zone) then
+        SetEntityCanBeDamaged(Safezone.Player.ped, false)
+        SetEntityInvincible(Safezone.Player.ped, true)
+        SetPlayerInvincible(Safezone.Player.id, true)
+    else
+        SetEntityCanBeDamaged(Safezone.Player.ped, true)
+        SetEntityInvincible(Safezone.Player.ped, false)
+        SetPlayerInvincible(Safezone.Player.id, false)
+    end
+
+    if zone._disableWeapons ~= false then
+        Safezone.DisableWeapons()
+    end
     Safezone.StartSafezoneRestrictions()
 
     Safezone.Collision.StartCollisionSystem()
@@ -264,25 +311,28 @@ function Safezone.StartSafezoneRestrictions()
             local currentTime = GetGameTimer()
             local currentZone = Safezone.State.currentSafezone
             local invincibilityEnabled = isZoneInvincibilityEnabled(currentZone)
+            local weaponsDisabled = not currentZone or currentZone._disableWeapons ~= false
 
-            for i = 0, 5 do
-                for _, control in ipairs(disableControls) do
-                    DisableControlAction(i, control, true)
+            if weaponsDisabled then
+                for i = 0, 5 do
+                    for _, control in ipairs(disableControls) do
+                        DisableControlAction(i, control, true)
+                    end
                 end
-            end
 
-            DisableControlAction(0, 114, true)
-            DisableControlAction(0, 331, true)
-            DisableControlAction(0, 99, true)
-            DisableControlAction(0, 100, true)
-            DisableControlAction(0, 357, true)
+                DisableControlAction(0, 114, true)
+                DisableControlAction(0, 331, true)
+                DisableControlAction(0, 99, true)
+                DisableControlAction(0, 100, true)
+                DisableControlAction(0, 357, true)
+            end
 
             if currentTime - lastCacheUpdate >= cacheInterval then
                 Safezone.UpdatePlayerCache()
                 lastCacheUpdate = currentTime
             end
 
-            if currentTime - lastWeaponCheck >= weaponCheckInterval then
+            if weaponsDisabled and currentTime - lastWeaponCheck >= weaponCheckInterval then
                 lastWeaponCheck = currentTime
                 local currentWeapon = GetSelectedPedWeapon(Safezone.Player.ped)
                 if currentWeapon ~= 'WEAPON_UNARMED' then
@@ -318,7 +368,8 @@ function Safezone.StartSafezoneRestrictions()
                     lastVehicleWeaponUpdate = 0
                 end
 
-                if (not vehicleProtected) or (currentTime - lastVehicleProtection >= vehicleProtectionInterval) then
+                local shouldProtectVehicle = not currentZone or currentZone.preventVehicleDamage ~= false
+                if shouldProtectVehicle and ((not vehicleProtected) or (currentTime - lastVehicleProtection >= vehicleProtectionInterval)) then
                     lastVehicleProtection = currentTime
                     vehicleProtected = true
                     SetEntityCanBeDamaged(vehicle, false)
@@ -435,6 +486,24 @@ end)
 
 RegisterNetEvent('f5_safezones:forceExitZone', function()
     Safezone.ExitSafezone()
+end)
+
+AddEventHandler('f5_safezones:onJobUpdate', function()
+    if Safezone.State.isInSafezone and Safezone.State.currentSafezone then
+        local originalZone = Safezone.State.currentSafezone._originalZone or Safezone.State.currentSafezone
+        local previousGhosting = Safezone.State.currentSafezone.enableGhosting
+        Safezone.State.currentSafezone = applyJobOverrides(originalZone)
+        local newGhosting = Safezone.State.currentSafezone.enableGhosting
+
+        if previousGhosting ~= newGhosting then
+            Safezone.UpdatePlayerCache()
+            if newGhosting ~= false then
+                SetEntityAlpha(Safezone.Player.ped, Config.CollisionSystem.playerAlpha or 200, false)
+            else
+                ResetEntityAlpha(Safezone.Player.ped)
+            end
+        end
+    end
 end)
 
 RegisterNetEvent('f5_safezones:playerLeftSameZone', function(serverId)
