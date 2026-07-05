@@ -75,8 +75,9 @@ local function validateJobOverrides(data)
                     name = job.name:lower():gsub('%s+', ''),
                     minGrade = math.max(0, math.floor(tonumber(job.minGrade) or 0)),
                     enableInvincibility = parseBoolean(job.enableInvincibility, true),
+                    enableVehicleInvincibility = parseBoolean(job.enableVehicleInvincibility, true),
+                    enableVehicleGhosting = parseBoolean(job.enableVehicleGhosting, false),
                     enableGhosting = parseBoolean(job.enableGhosting, true),
-                    preventVehicleDamage = parseBoolean(job.preventVehicleDamage, true),
                     disableVehicleWeapons = parseBoolean(job.disableVehicleWeapons, true),
                     disableWeapons = parseBoolean(job.disableWeapons, true)
                 })
@@ -95,13 +96,9 @@ local function normalizeInvincibilityOption(zoneData)
         return
     end
 
-    local invincibility = zoneData.enableInvincibility
-    if invincibility == nil and zoneData.enableImmortality ~= nil then
-        invincibility = zoneData.enableImmortality
-    end
-
-    zoneData.enableInvincibility = parseBoolean(invincibility, true)
-    zoneData.enableImmortality = nil
+    zoneData.enableInvincibility = parseBoolean(zoneData.enableInvincibility, true)
+    zoneData.enableVehicleInvincibility = parseBoolean(zoneData.enableVehicleInvincibility, true)
+    zoneData.enableVehicleGhosting = parseBoolean(zoneData.enableVehicleGhosting, false)
 end
 
 function Zones.LoadZoneStates()
@@ -281,16 +278,15 @@ function Zones.ValidateZone(zone)
 end
 
 function Zones.SaveCustomZones()
+    TriggerClientEvent('f5_safezones:updateZones', -1, Zones.GetAllZones())
+
     if Server.zoneSaveTimer then
         ClearTimeout(Server.zoneSaveTimer)
         Server.zoneSaveTimer = nil
     end
 
     Server.zoneSaveTimer = SetTimeout(1000, function()
-        local success = Zones.PerformZoneSave()
-        if success then
-            TriggerClientEvent('f5_safezones:updateZones', -1, Zones.GetAllZones())
-        end
+        Zones.PerformZoneSave()
         Server.zoneSaveTimer = nil
     end)
 end
@@ -512,9 +508,6 @@ RegisterNetEvent('f5_safezones:createZone', function(zoneData)
     end
 
     local invincibilityInput = zoneData.enableInvincibility
-    if invincibilityInput == nil and zoneData.enableImmortality ~= nil then
-        invincibilityInput = zoneData.enableImmortality
-    end
 
     local newZone = {
         name = zoneData.name,
@@ -546,8 +539,9 @@ RegisterNetEvent('f5_safezones:createZone', function(zoneData)
         circleCoverageType = zoneData.circleCoverageType or 'full',
 
         enableInvincibility = parseBoolean(invincibilityInput, true),
+        enableVehicleInvincibility = parseBoolean(zoneData.enableVehicleInvincibility, true),
+        enableVehicleGhosting = parseBoolean(zoneData.enableVehicleGhosting, false),
         enableGhosting = zoneData.enableGhosting ~= false,
-        preventVehicleDamage = zoneData.preventVehicleDamage ~= false,
         disableVehicleWeapons = zoneData.disableVehicleWeapons ~= false,
         collisionDisabled = zoneData.collisionDisabled == true,
         createdBy = GetPlayerName(src),
@@ -802,9 +796,6 @@ RegisterNetEvent('f5_safezones:updateZone', function(zoneData)
     end
 
     local updateInvincibilityInput = zoneData.enableInvincibility
-    if updateInvincibilityInput == nil and zoneData.enableImmortality ~= nil then
-        updateInvincibilityInput = zoneData.enableImmortality
-    end
 
     local updatedZone = {
         name = zoneData.name,
@@ -836,8 +827,9 @@ RegisterNetEvent('f5_safezones:updateZone', function(zoneData)
         circleCoverageType = zoneData.circleCoverageType or oldZone.circleCoverageType or 'full',
 
         enableInvincibility = parseBoolean(updateInvincibilityInput, true),
+        enableVehicleInvincibility = parseBoolean(zoneData.enableVehicleInvincibility, true),
+        enableVehicleGhosting = parseBoolean(zoneData.enableVehicleGhosting, false),
         enableGhosting = zoneData.enableGhosting ~= false,
-        preventVehicleDamage = zoneData.preventVehicleDamage ~= false,
         disableVehicleWeapons = zoneData.disableVehicleWeapons ~= false,
         collisionDisabled = zoneData.collisionDisabled == true,
         createdBy = oldZone.createdBy or 'Unknown',

@@ -13,6 +13,11 @@ local ghostedEntities = {}
 local processedEntities = {}
 local playersInZone = {}
 local ghostedPlayers = {}
+local vehiclesInZone = {}
+local lastVehicleZoneUpdate = 0
+local VEHICLE_ZONE_UPDATE_INTERVAL = Config.Performance.updateIntervals.collisionCheck or 450
+local lastVehicleEnforce = 0
+local VEHICLE_ENFORCE_INTERVAL = Config.Performance.updateIntervals.vehicleEnforce or 50
 local lastPlayerUpdate = 0
 local PLAYER_UPDATE_INTERVAL = Config.Performance.updateIntervals.playerCache or 600
 
@@ -61,15 +66,6 @@ local function ApplyPlayerGhosting(playerPed, serverId)
 
     local vehicle = GetVehiclePedIsIn(playerPed, false)
     if vehicle ~= 0 and DoesEntityExist(vehicle) then
-        if not ghostedPlayers[serverId].originalVehicleAlpha then
-            ghostedPlayers[serverId].originalVehicleAlpha = GetEntityAlpha(vehicle) == 0 and 255 or GetEntityAlpha(vehicle)
-        end
-
-        local desiredVehicleAlpha = Config.CollisionSystem.vehicleAlpha or 200
-        if ghostedPlayers[serverId].currentVehicleAlpha ~= desiredVehicleAlpha then
-            SetEntityAlpha(vehicle, desiredVehicleAlpha, false)
-            ghostedPlayers[serverId].currentVehicleAlpha = desiredVehicleAlpha
-        end
         SetEntityNoCollisionEntity(Safezone.Player.ped, vehicle, true)
         SetEntityNoCollisionEntity(vehicle, Safezone.Player.ped, true)
 
@@ -123,13 +119,12 @@ function Collision.RemovePlayerGhosting(serverId)
     end
 end
 
-local function IsPlayerInCurrentZone(playerPed)
+local function IsCoordsInCurrentZone(coords)
     local currentSafezone = Safezone.State.currentSafezone
     if not currentSafezone then
         return false
     end
 
-    local playerCoords = GetEntityCoords(playerPed)
     local processedZones = Zones.GetProcessedZones()
     local zoneCount = Zones.GetZoneCount()
 
@@ -137,12 +132,12 @@ local function IsPlayerInCurrentZone(playerPed)
         local zone = processedZones[i]
         if zone.name == currentSafezone.name then
             if zone.type == 'circle' then
-                local distanceSquared = Zones.GetDistanceSquared(playerCoords, zone.coords)
-                if distanceSquared <= zone.radiusSquared and playerCoords.z >= zone.minZ and playerCoords.z <= zone.maxZ then
+                local distanceSquared = Zones.GetDistanceSquared(coords, zone.coords)
+                if distanceSquared <= zone.radiusSquared and coords.z >= zone.minZ and coords.z <= zone.maxZ then
                     return true
                 end
             elseif zone.type == 'polygon' then
-                if playerCoords.z >= zone.minZ and playerCoords.z <= zone.maxZ and Zones.IsPointInPolygon(vector2(playerCoords.x, playerCoords.y), zone.points, zone.bounds) then
+                if coords.z >= zone.minZ and coords.z <= zone.maxZ and Zones.IsPointInPolygon(vector2(coords.x, coords.y), zone.points, zone.bounds) then
                     return true
                 end
             end
@@ -151,6 +146,13 @@ local function IsPlayerInCurrentZone(playerPed)
     end
 
     return false
+end
+
+local function IsPlayerInCurrentZone(playerPed)
+    if not DoesEntityExist(playerPed) then
+        return false
+    end
+    return IsCoordsInCurrentZone(GetEntityCoords(playerPed))
 end
 
 function Collision.UpdatePlayersInZone()
@@ -192,6 +194,152 @@ function Collision.UpdatePlayersInZone()
     playersInZone = newPlayersInZone
     Safezone.Performance.playersGhosted = ghostedCount
     lastPlayerUpdate = GetGameTimer()
+end
+
+local function TrackVehicleInZone(vehicle)
+    if not vehiclesInZone[vehicle] then
+        vehiclesInZone[vehicle] = { currentAlpha = nil, invincible = false }
+    end
+end
+
+local function RestoreVehicleZoneState(vehicle, data)
+    if not DoesEntityExist(vehicle) then
+        return
+    end
+
+    if data and data.invincible then
+        SetEntityInvincible(vehicle, false)
+        SetEntityCanBeDamaged(vehicle, true)
+        SetVehicleTyresCanBurst(vehicle, true)
+    end
+
+    ResetEntityAlpha(vehicle)
+
+    local ped = Safezone.Player.ped
+    SetEntityNoCollisionEntity(vehicle, ped, false)
+    SetEntityNoCollisionEntity(ped, vehicle, false)
+
+    local myVeh = GetVehiclePedIsIn(ped, false)
+    if myVeh ~= 0 and myVeh ~= vehicle then
+        SetEntityNoCollisionEntity(vehicle, myVeh, false)
+        SetEntityNoCollisionEntity(myVeh, vehicle, false)
+    end
+
+    for otherVeh, _ in pairs(vehiclesInZone) do
+        if otherVeh ~= vehicle and DoesEntityExist(otherVeh) then
+            SetEntityNoCollisionEntity(vehicle, otherVeh, false)
+            SetEntityNoCollisionEntity(otherVeh, vehicle, false)
+        end
+    end
+
+    for _, playerData in pairs(playersInZone) do
+        if DoesEntityExist(playerData.ped) then
+            SetEntityNoCollisionEntity(vehicle, playerData.ped, false)
+            SetEntityNoCollisionEntity(playerData.ped, vehicle, false)
+        end
+    end
+end
+
+local function RemoveVehicleFromZone(vehicle)
+    local data = vehiclesInZone[vehicle]
+    vehiclesInZone[vehicle] = nil
+    RestoreVehicleZoneState(vehicle, data)
+end
+
+function Collision.EnforceVehiclesInZone()
+    if not Safezone.State.isInSafezone or not Safezone.State.currentSafezone then
+        return
+    end
+
+    local zone = Safezone.State.currentSafezone
+    local invincible = Safezone.IsZoneVehicleInvincibilityEnabled(zone)
+    local ghost = Safezone.IsZoneVehicleGhostingEnabled(zone)
+    local ped = Safezone.Player.ped
+    local myVeh = GetVehiclePedIsIn(ped, false)
+    local desiredAlpha = Config.CollisionSystem.vehicleAlpha or 200
+
+    local activeList = {}
+
+    for vehicle, data in pairs(vehiclesInZone) do
+        if DoesEntityExist(vehicle) then
+            activeList[#activeList + 1] = vehicle
+
+            if invincible and not data.invincible then
+                SetEntityInvincible(vehicle, true)
+                SetEntityCanBeDamaged(vehicle, false)
+                SetVehicleTyresCanBurst(vehicle, false)
+                data.invincible = true
+            elseif not invincible and data.invincible then
+                SetEntityInvincible(vehicle, false)
+                SetEntityCanBeDamaged(vehicle, true)
+                SetVehicleTyresCanBurst(vehicle, true)
+                data.invincible = false
+            end
+
+            if ghost then
+                if data.currentAlpha ~= desiredAlpha then
+                    SetEntityAlpha(vehicle, desiredAlpha, false)
+                    data.currentAlpha = desiredAlpha
+                end
+            elseif data.currentAlpha ~= nil then
+                ResetEntityAlpha(vehicle)
+                data.currentAlpha = nil
+            end
+
+            if vehicle ~= myVeh then
+                SetEntityNoCollisionEntity(vehicle, ped, true)
+                SetEntityNoCollisionEntity(ped, vehicle, true)
+            end
+            if myVeh ~= 0 and myVeh ~= vehicle then
+                SetEntityNoCollisionEntity(vehicle, myVeh, true)
+                SetEntityNoCollisionEntity(myVeh, vehicle, true)
+            end
+
+            for _, playerData in pairs(playersInZone) do
+                if DoesEntityExist(playerData.ped) then
+                    SetEntityNoCollisionEntity(vehicle, playerData.ped, true)
+                    SetEntityNoCollisionEntity(playerData.ped, vehicle, true)
+                end
+            end
+        else
+            vehiclesInZone[vehicle] = nil
+        end
+    end
+
+    for i = 1, #activeList do
+        for j = i + 1, #activeList do
+            SetEntityNoCollisionEntity(activeList[i], activeList[j], true)
+            SetEntityNoCollisionEntity(activeList[j], activeList[i], true)
+        end
+    end
+end
+
+function Collision.UpdateVehiclesInZone()
+    if not Safezone.State.isInSafezone or not Safezone.State.currentSafezone then
+        return
+    end
+
+    local vehicles = GetGamePool('CVehicle')
+    local newVehicles = {}
+
+    for _, vehicle in ipairs(vehicles) do
+        if DoesEntityExist(vehicle) and IsCoordsInCurrentZone(GetEntityCoords(vehicle)) then
+            newVehicles[vehicle] = true
+            TrackVehicleInZone(vehicle)
+        end
+    end
+
+    local toRemove = {}
+    for vehicle, _ in pairs(vehiclesInZone) do
+        if not newVehicles[vehicle] then
+            toRemove[#toRemove + 1] = vehicle
+        end
+    end
+    for _, vehicle in ipairs(toRemove) do
+        RemoveVehicleFromZone(vehicle)
+    end
+
+    lastVehicleZoneUpdate = GetGameTimer()
 end
 
 local function UpdateCollisionEntities()
@@ -360,18 +508,62 @@ function Collision.RestoreAllCollisions()
     end
 
     local vehicles = GetGamePool('CVehicle')
+    local activePlayers = GetActivePlayers()
     for _, vehicle in ipairs(vehicles) do
-        local vehicleCoords = GetEntityCoords(vehicle)
-        local distance = #(Safezone.Player.coords - vehicleCoords)
-        if distance < (COLLISION_RANGE * 2) then
+        SetEntityNoCollisionEntity(vehicle, ped, false)
+        SetEntityNoCollisionEntity(ped, vehicle, false)
+        if myVeh ~= 0 and myVeh ~= vehicle then
+            SetEntityNoCollisionEntity(vehicle, myVeh, false)
+            SetEntityNoCollisionEntity(myVeh, vehicle, false)
+        end
+        for _, player in ipairs(activePlayers) do
+            local otherPed = GetPlayerPed(player)
+            if otherPed ~= 0 and DoesEntityExist(otherPed) then
+                SetEntityNoCollisionEntity(vehicle, otherPed, false)
+                SetEntityNoCollisionEntity(otherPed, vehicle, false)
+            end
+        end
+        SetEntityInvincible(vehicle, false)
+        SetEntityCanBeDamaged(vehicle, true)
+        SetVehicleTyresCanBurst(vehicle, true)
+        ResetEntityAlpha(vehicle)
+        SetVehicleWeaponsDisabled(vehicle, false)
+    end
+
+    for vehicle, ghostData in pairs(vehiclesInZone) do
+        if DoesEntityExist(vehicle) then
+            if ghostData.invincible then
+                SetEntityInvincible(vehicle, false)
+                SetEntityCanBeDamaged(vehicle, true)
+                SetVehicleTyresCanBurst(vehicle, true)
+            end
             SetEntityNoCollisionEntity(vehicle, ped, false)
             SetEntityNoCollisionEntity(ped, vehicle, false)
             if myVeh ~= 0 and myVeh ~= vehicle then
                 SetEntityNoCollisionEntity(vehicle, myVeh, false)
                 SetEntityNoCollisionEntity(myVeh, vehicle, false)
             end
+            for _, player in ipairs(GetActivePlayers()) do
+                local otherPed = GetPlayerPed(player)
+                if otherPed ~= 0 and otherPed ~= ped and DoesEntityExist(otherPed) then
+                    SetEntityNoCollisionEntity(vehicle, otherPed, false)
+                    SetEntityNoCollisionEntity(otherPed, vehicle, false)
+                end
+            end
             ResetEntityAlpha(vehicle)
-            SetVehicleWeaponsDisabled(vehicle, false)
+        end
+    end
+
+    local vehiclesInZoneList = {}
+    for vehicle, _ in pairs(vehiclesInZone) do
+        vehiclesInZoneList[#vehiclesInZoneList + 1] = vehicle
+    end
+    for i = 1, #vehiclesInZoneList do
+        for j = i + 1, #vehiclesInZoneList do
+            if DoesEntityExist(vehiclesInZoneList[i]) and DoesEntityExist(vehiclesInZoneList[j]) then
+                SetEntityNoCollisionEntity(vehiclesInZoneList[i], vehiclesInZoneList[j], false)
+                SetEntityNoCollisionEntity(vehiclesInZoneList[j], vehiclesInZoneList[i], false)
+            end
         end
     end
 
@@ -406,6 +598,9 @@ function Collision.RestoreAllCollisions()
     processedEntities = {}
     ghostedPlayers = {}
     playersInZone = {}
+    vehiclesInZone = {}
+    lastVehicleZoneUpdate = 0
+    lastVehicleEnforce = 0
 
     if ped and DoesEntityExist(ped) then
         ResetEntityAlpha(ped)
@@ -415,41 +610,25 @@ function Collision.RestoreAllCollisions()
     end
 end
 
-local function PreventVehicleDamage()
-    SetEntityProofs(Safezone.Player.ped, false, false, false, true, false, false, false, false)
-    SetPedCanRagdoll(Safezone.Player.ped, false)
-    SetPedCanRagdollFromPlayerImpact(Safezone.Player.ped, false)
-    SetPedConfigFlag(Safezone.Player.ped, 32, false)
-    SetPedCanBeKnockedOffVehicle(Safezone.Player.ped, 1)
-    SetPedCanBeDraggedOut(Safezone.Player.ped, false)
-    SetPedSuffersCriticalHits(Safezone.Player.ped, false)
-
-    if IsPedRagdoll(Safezone.Player.ped) then
-        SetPedToRagdoll(Safezone.Player.ped, 1, 1, 0, false, false, false)
-    end
-end
-
 function Collision.StartCollisionSystem()
     CreateThread(function()
         local zone = Safezone.State.currentSafezone
         if not zone then return end
 
         local isFullGhost = zone.collisionDisabled == true
-        local isPlayerGhosting = zone.enableGhosting ~= false
+        local initialPlayerGhosting = zone.enableGhosting ~= false
 
-        if isFullGhost or isPlayerGhosting then
+        if isFullGhost or initialPlayerGhosting then
             Safezone.ShowNotification(Translate('collision_mode_active'), 'primary')
         end
 
         local cacheRefreshInterval = Config.Performance.updateIntervals.playerCache or 600
         local alphaEnforceInterval = 250
-        local damageProtectionInterval = 300
         local movementResetInterval = 250
         local waitInterval = 5
 
         local lastCacheRefresh = 0
         local lastAlphaEnforce = 0
-        local lastDamageProtection = 0
         local lastMovementReset = 0
 
         local desiredPlayerAlpha = Config.CollisionSystem.playerAlpha or 200
@@ -457,6 +636,8 @@ function Collision.StartCollisionSystem()
         while Safezone.State.isInSafezone do
             local currentTime = GetGameTimer()
             local ped = PlayerPedId()
+            local liveZone = Safezone.State.currentSafezone
+            local isPlayerGhosting = liveZone and liveZone.enableGhosting ~= false
 
             if currentTime - lastCacheRefresh >= cacheRefreshInterval then
                 Safezone.UpdatePlayerCache()
@@ -471,12 +652,23 @@ function Collision.StartCollisionSystem()
                 UpdateCollisionEntities()
             end
 
+            if currentTime - lastVehicleZoneUpdate > VEHICLE_ZONE_UPDATE_INTERVAL then
+                Collision.UpdateVehiclesInZone()
+            end
+
+            if currentTime - lastVehicleEnforce >= VEHICLE_ENFORCE_INTERVAL then
+                lastVehicleEnforce = currentTime
+                Collision.EnforceVehiclesInZone()
+            end
+
             if isPlayerGhosting or isFullGhost then
                 local enforceAlpha = false
                 if currentTime - lastAlphaEnforce >= alphaEnforceInterval then
                     lastAlphaEnforce = currentTime
                     enforceAlpha = true
-                    SetEntityAlphaIfNeeded(ped, desiredPlayerAlpha)
+                    if isPlayerGhosting then
+                        SetEntityAlphaIfNeeded(ped, desiredPlayerAlpha)
+                    end
                 end
 
                 for serverId, playerData in pairs(playersInZone) do
@@ -486,17 +678,23 @@ function Collision.StartCollisionSystem()
                         end
                         SetEntityNoCollisionEntity(ped, playerData.ped, true)
                         SetEntityNoCollisionEntity(playerData.ped, ped, true)
+                    end
+                end
+            else
+                local enforceAlpha = false
+                if currentTime - lastAlphaEnforce >= alphaEnforceInterval then
+                    lastAlphaEnforce = currentTime
+                    enforceAlpha = true
+                    SetEntityAlphaIfNeeded(ped, 255)
+                end
 
-                        local theirVeh = GetVehiclePedIsIn(playerData.ped, false)
-                        if theirVeh ~= 0 and DoesEntityExist(theirVeh) then
-                            SetEntityNoCollisionEntity(ped, theirVeh, true)
-                            SetEntityNoCollisionEntity(theirVeh, ped, true)
-                            local myVeh = GetVehiclePedIsIn(ped, false)
-                            if myVeh ~= 0 and myVeh ~= theirVeh then
-                                SetEntityNoCollisionEntity(myVeh, theirVeh, true)
-                                SetEntityNoCollisionEntity(theirVeh, myVeh, true)
-                            end
+                for serverId, playerData in pairs(playersInZone) do
+                    if DoesEntityExist(playerData.ped) then
+                        if enforceAlpha then
+                            SetEntityAlphaIfNeeded(playerData.ped, 255, ghostedPlayers, serverId)
                         end
+                        SetEntityNoCollisionEntity(ped, playerData.ped, false)
+                        SetEntityNoCollisionEntity(playerData.ped, ped, false)
                     end
                 end
             end
@@ -542,29 +740,11 @@ function Collision.StartCollisionSystem()
                 end
             end
 
-            local preventDamage = zone and zone.preventVehicleDamage ~= false
-            local applyDamageProtection = false
-
-            if preventDamage and currentTime - lastDamageProtection >= damageProtectionInterval then
-                lastDamageProtection = currentTime
-                PreventVehicleDamage()
-                applyDamageProtection = true
-            end
-
             if not IsPedInAnyVehicle(ped, false) and currentTime - lastMovementReset >= movementResetInterval then
                 lastMovementReset = currentTime
                 SetPedMoveRateOverride(ped, 1.0)
-                SetPlayerControl(Safezone.Player.id, true, 0)
                 ActivatePhysics(ped)
                 SetEntityVelocity(ped, GetEntityVelocity(ped))
-            end
-
-            if preventDamage and applyDamageProtection then
-                SetEntityProofs(ped, false, false, false, true, false, false, false, false)
-                SetPlayerCanBeHassledByGangs(Safezone.Player.id, false)
-                SetPlayerVehicleDamageModifier(Safezone.Player.id, 0.0)
-                SetPlayerWeaponDamageModifier(Safezone.Player.id, 0.0)
-                SetPlayerMeleeWeaponDamageModifier(Safezone.Player.id, 0.0)
             end
 
             Wait(waitInterval)
@@ -584,6 +764,9 @@ function Collision.Clear()
     processedEntities = {}
     ghostedPlayers = {}
     playersInZone = {}
+    vehiclesInZone = {}
+    lastVehicleZoneUpdate = 0
+    lastVehicleEnforce = 0
     lastCollisionUpdate = 0
     lastPlayerUpdate = 0
 end

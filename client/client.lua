@@ -38,7 +38,7 @@ Safezone.Zones = Safezone.Zones or {}
 Safezone.Collision = Safezone.Collision or {}
 Safezone.UI = Safezone.UI or {}
 
-local function isZoneInvincibilityEnabled(zone)
+function Safezone.IsZoneInvincibilityEnabled(zone)
     if not zone then
         return false
     end
@@ -47,11 +47,31 @@ local function isZoneInvincibilityEnabled(zone)
         return zone.enableInvincibility ~= false
     end
 
-    if zone.enableImmortality ~= nil then
-        return zone.enableImmortality ~= false
+    return true
+end
+
+function Safezone.IsZoneVehicleInvincibilityEnabled(zone)
+    if not zone then
+        return false
+    end
+
+    if zone.enableVehicleInvincibility ~= nil then
+        return zone.enableVehicleInvincibility ~= false
     end
 
     return true
+end
+
+function Safezone.IsZoneVehicleGhostingEnabled(zone)
+    if not zone then
+        return false
+    end
+
+    if zone.enableVehicleGhosting ~= nil then
+        return zone.enableVehicleGhosting ~= false
+    end
+
+    return false
 end
 
 function Safezone.UpdatePlayerCache()
@@ -126,8 +146,9 @@ local function applyJobOverrides(zone)
                 overridden[k] = v
             end
             overridden.enableInvincibility = entry.enableInvincibility
+            overridden.enableVehicleInvincibility = entry.enableVehicleInvincibility
+            overridden.enableVehicleGhosting = entry.enableVehicleGhosting
             overridden.enableGhosting = entry.enableGhosting
-            overridden.preventVehicleDamage = entry.preventVehicleDamage
             overridden.disableVehicleWeapons = entry.disableVehicleWeapons
             overridden._disableWeapons = entry.disableWeapons
             overridden._originalZone = zone
@@ -198,7 +219,14 @@ function Safezone.StartSafezoneLoop()
                     Wait(100)
                     Safezone.EnterSafezone(foundZone)
                 elseif foundZone and Safezone.State.isInSafezone and Safezone.State.currentSafezone and foundZone ~= (Safezone.State.currentSafezone._originalZone or Safezone.State.currentSafezone) then
-                    Safezone.State.currentSafezone = applyJobOverrides(foundZone)
+                    local currentOriginal = Safezone.State.currentSafezone._originalZone or Safezone.State.currentSafezone
+                    if (foundZone.collisionDisabled == true) ~= (currentOriginal.collisionDisabled == true) then
+                        Safezone.ExitSafezone()
+                        Wait(100)
+                        Safezone.EnterSafezone(foundZone)
+                    else
+                        Safezone.State.currentSafezone = applyJobOverrides(foundZone)
+                    end
                 end
             end
 
@@ -221,21 +249,20 @@ function Safezone.EnterSafezone(zone)
 
     if zone.enableGhosting ~= false then
         SetEntityAlpha(Safezone.Player.ped, Config.CollisionSystem.playerAlpha or 200, false)
+    else
+        SetEntityAlpha(Safezone.Player.ped, 255, false)
     end
 
-    if isZoneInvincibilityEnabled(zone) then
-        SetEntityCanBeDamaged(Safezone.Player.ped, false)
+    if Safezone.IsZoneInvincibilityEnabled(zone) then
         SetEntityInvincible(Safezone.Player.ped, true)
-        SetPlayerInvincible(Safezone.Player.id, true)
-    else
-        SetEntityCanBeDamaged(Safezone.Player.ped, true)
-        SetEntityInvincible(Safezone.Player.ped, false)
-        SetPlayerInvincible(Safezone.Player.id, false)
+        SetPlayerInvincible(Safezone.Player.ped, true)
+        SetEntityCanBeDamaged(Safezone.Player.ped, false)
     end
 
     if zone._disableWeapons ~= false then
         Safezone.DisableWeapons()
     end
+
     Safezone.StartSafezoneRestrictions()
 
     Safezone.Collision.StartCollisionSystem()
@@ -288,19 +315,14 @@ function Safezone.StartSafezoneRestrictions()
     CreateThread(function()
         local cacheInterval = Config.Performance.updateIntervals.playerCache or 600
         local weaponCheckInterval = Config.Performance.updateIntervals.weaponCheck or 250
-        local invincibilityInterval = Config.Performance.updateIntervals.invincibility or 1000
         local vehicleProtectionInterval = Config.Performance.updateIntervals.vehicleProtection or 1000
         local waitInterval = 5
 
         local lastCacheUpdate = 0
         local lastWeaponCheck = 0
-        local lastInvincibilityUpdate = 0
-        local lastVehicleProtection = 0
         local lastVehicleWeaponUpdate = 0
 
-        local playerInvincible = false
         local activeVehicle = 0
-        local vehicleProtected = false
         local vehicleWeaponsDisabled = false
 
         local disableControls = {
@@ -310,7 +332,7 @@ function Safezone.StartSafezoneRestrictions()
         while Safezone.State.isInSafezone do
             local currentTime = GetGameTimer()
             local currentZone = Safezone.State.currentSafezone
-            local invincibilityEnabled = isZoneInvincibilityEnabled(currentZone)
+            local invincibilityEnabled = Safezone.IsZoneInvincibilityEnabled(currentZone)
             local weaponsDisabled = not currentZone or currentZone._disableWeapons ~= false
 
             if weaponsDisabled then
@@ -341,42 +363,21 @@ function Safezone.StartSafezoneRestrictions()
             end
 
             if invincibilityEnabled then
-                if (not playerInvincible) or (currentTime - lastInvincibilityUpdate >= invincibilityInterval) then
-                    playerInvincible = true
-                    lastInvincibilityUpdate = currentTime
-                    SetEntityCanBeDamaged(Safezone.Player.ped, false)
-                    SetEntityInvincible(Safezone.Player.ped, true)
-                    SetPlayerInvincible(Safezone.Player.id, true)
-                    ClearPedBloodDamage(Safezone.Player.ped)
-                    ResetPedVisibleDamage(Safezone.Player.ped)
-                    SetEntityProofs(Safezone.Player.ped, false, false, false, true, false, false, false, false)
-                end
-            elseif playerInvincible then
-                playerInvincible = false
-                SetEntityCanBeDamaged(Safezone.Player.ped, true)
+                SetEntityInvincible(Safezone.Player.ped, true)
+                SetEntityCanBeDamaged(Safezone.Player.ped, false)
+                SetPlayerInvincible(Safezone.Player.ped, true)
+            else
                 SetEntityInvincible(Safezone.Player.ped, false)
-                SetPlayerInvincible(Safezone.Player.id, false)
-                SetEntityProofs(Safezone.Player.ped, false, false, false, false, false, false, false, false)
+                SetPlayerInvincible(Safezone.Player.ped, false)
+                SetEntityCanBeDamaged(Safezone.Player.ped, true)
             end
 
             local vehicle = GetVehiclePedIsIn(Safezone.Player.ped, false)
             if vehicle ~= 0 then
                 if vehicle ~= activeVehicle then
                     activeVehicle = vehicle
-                    vehicleProtected = false
                     vehicleWeaponsDisabled = false
                     lastVehicleWeaponUpdate = 0
-                end
-
-                local shouldProtectVehicle = not currentZone or currentZone.preventVehicleDamage ~= false
-                if shouldProtectVehicle and ((not vehicleProtected) or (currentTime - lastVehicleProtection >= vehicleProtectionInterval)) then
-                    lastVehicleProtection = currentTime
-                    vehicleProtected = true
-                    SetEntityCanBeDamaged(vehicle, false)
-                    SetEntityInvincible(vehicle, true)
-                    SetVehicleCanBeVisiblyDamaged(vehicle, false)
-                    SetVehicleEngineCanDegrade(vehicle, false)
-                    SetVehicleTyresCanBurst(vehicle, false)
                 end
 
                 local shouldDisableWeapons = DoesVehicleHaveWeapons(vehicle) and (Safezone.State.currentSafezone and Safezone.State.currentSafezone.disableVehicleWeapons ~= false)
@@ -394,7 +395,6 @@ function Safezone.StartSafezoneRestrictions()
                 end
             else
                 activeVehicle = 0
-                vehicleProtected = false
                 vehicleWeaponsDisabled = false
                 lastVehicleWeaponUpdate = 0
             end
@@ -403,41 +403,20 @@ function Safezone.StartSafezoneRestrictions()
         end
 
         Safezone.RestorePlayerFromSafezoneMode()
+
     end)
 end
 
 function Safezone.RestorePlayerFromSafezoneMode()
     Safezone.UpdatePlayerCache()
     local ped = Safezone.Player.ped
-    local id = Safezone.Player.id
 
-    SetEntityCanBeDamaged(ped, true)
     SetEntityInvincible(ped, false)
-    SetPlayerInvincible(id, false)
-    SetPedCanRagdoll(ped, true)
-    SetPedCanRagdollFromPlayerImpact(ped, true)
-    SetEntityProofs(ped, false, false, false, false, false, false, false, false)
-
-    SetPedConfigFlag(ped, 32, true)
-    SetPedCanBeKnockedOffVehicle(ped, 0)
-    SetPedCanBeDraggedOut(ped, true)
-    SetPedSuffersCriticalHits(ped, true)
-
-    SetPlayerCanBeHassledByGangs(id, true)
-    SetPlayerVehicleDamageModifier(id, 1.0)
-    SetPlayerWeaponDamageModifier(id, 1.0)
-    SetPlayerMeleeWeaponDamageModifier(id, 1.0)
+    SetEntityCanBeDamaged(ped, true)
+    SetPlayerInvincible(ped, false)
 
     local vehicle = GetVehiclePedIsIn(ped, false)
-    if vehicle == 0 then
-        vehicle = GetVehiclePedIsIn(ped, true)
-    end
     if vehicle ~= 0 and DoesEntityExist(vehicle) then
-        SetEntityCanBeDamaged(vehicle, true)
-        SetEntityInvincible(vehicle, false)
-        SetVehicleCanBeVisiblyDamaged(vehicle, true)
-        SetVehicleEngineCanDegrade(vehicle, true)
-        SetVehicleTyresCanBurst(vehicle, true)
         SetVehicleWeaponsDisabled(vehicle, false)
     end
 end
@@ -449,6 +428,7 @@ RegisterNetEvent('f5_safezones:updateZones', function(zones)
 
     Safezone.Zones.SetZones(zones)
     Safezone.InitializeSafezones()
+    Safezone.Zones.ForceMarkerUpdate()
 end)
 
 RegisterNetEvent('f5_safezones:receivePlayersInZone', function(playerList)
@@ -530,6 +510,7 @@ AddEventHandler('onResourceStop', function(resourceName)
         end
 
         local vehicles = GetGamePool('CVehicle')
+        local activePlayersForVeh = GetActivePlayers()
         for _, vehicle in ipairs(vehicles) do
             SetEntityNoCollisionEntity(vehicle, myPed, false)
             SetEntityNoCollisionEntity(myPed, vehicle, false)
@@ -537,6 +518,16 @@ AddEventHandler('onResourceStop', function(resourceName)
                 SetEntityNoCollisionEntity(vehicle, myVeh, false)
                 SetEntityNoCollisionEntity(myVeh, vehicle, false)
             end
+            for _, player in ipairs(activePlayersForVeh) do
+                local otherPed = GetPlayerPed(player)
+                if otherPed ~= 0 and DoesEntityExist(otherPed) then
+                    SetEntityNoCollisionEntity(vehicle, otherPed, false)
+                    SetEntityNoCollisionEntity(otherPed, vehicle, false)
+                end
+            end
+            SetEntityInvincible(vehicle, false)
+            SetEntityCanBeDamaged(vehicle, true)
+            SetVehicleTyresCanBurst(vehicle, true)
             ResetEntityAlpha(vehicle)
             SetVehicleWeaponsDisabled(vehicle, false)
         end

@@ -56,7 +56,6 @@ Config.PolygonMarker = {
 -- Collision system settings
 Config.CollisionSystem = {
     range = 100.0, -- Range to detect vehicles/entities for collision
-    explosionRange = 100.0, -- Range to cancel explosions near safezone players
     vehicleAlpha = 200, -- Transparency level for vehicles (0-255)
     playerAlpha = 200, -- Transparency level for player in safezone (0-255)
 }
@@ -77,10 +76,10 @@ Config.Performance = {
     updateIntervals = {
         playerCache = 600, -- Update player position cache
         markerList = 1000, -- Update which markers to render
-        collisionCheck = 450, -- Update collision entities
+        collisionCheck = 450, -- Update collision entities (also: how often vehicles entering/leaving a zone are detected)
         weaponCheck = 250, -- Check if player switched weapons
-        invincibility = 1000, -- Refresh invincibility state
-        vehicleProtection = 1000 -- Refresh vehicle protection state
+        vehicleEnforce = 50, -- How often (ms) in-zone vehicle protection is re-applied: invincibility + transparency (ghost) + pass-through collision
+        vehicleProtection = 1000 -- Refresh interval (ms) for disabling weapons on the player's OWN vehicle (unrelated to vehicleEnforce above)
     }
 }
 
@@ -98,8 +97,9 @@ Config.Safezones = {
         blipName = "Safe Zone - Legion Square",
         -- Collision system options (all default to true if not specified)
         enableInvincibility = true, -- Make players invincible inside the zone
+        enableVehicleInvincibility = true,
         enableGhosting = true, -- Enable player/vehicle ghosting
-        preventVehicleDamage = true, -- Prevent vehicle damage to players
+        enableVehicleGhosting = false,
         disableVehicleWeapons = true, -- Disable vehicle-mounted weapons
         collisionDisabled = false, -- Set to true to completely disable collision system for this zone
         -- Render distance configuration

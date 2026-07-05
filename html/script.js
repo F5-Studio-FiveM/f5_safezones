@@ -2652,8 +2652,9 @@ function addJobEntryRow(data) {
     const jobName = d.name || '';
     const minGrade = d.minGrade !== undefined ? d.minGrade : 0;
     const invincibility = d.enableInvincibility !== undefined ? d.enableInvincibility : true;
+    const vehicleInvincibility = d.enableVehicleInvincibility !== undefined ? d.enableVehicleInvincibility : true;
+    const vehicleGhosting = d.enableVehicleGhosting !== undefined ? d.enableVehicleGhosting : false;
     const ghosting = d.enableGhosting !== undefined ? d.enableGhosting : true;
-    const vehicleDamage = d.preventVehicleDamage !== undefined ? d.preventVehicleDamage : true;
     const vehicleWeapons = d.disableVehicleWeapons !== undefined ? d.disableVehicleWeapons : true;
     const disableWeapons = d.disableWeapons !== undefined ? d.disableWeapons : true;
 
@@ -2686,17 +2687,24 @@ function addJobEntryRow(data) {
                 </div>
             </label>
             <label class="f-toggle">
+                <input type="checkbox" data-job-field="enableVehicleInvincibility" ${vehicleInvincibility ? 'checked' : ''} />
+                <span class="f-toggle__track"></span>
+                <div class="f-toggle__content">
+                    <span class="f-toggle__label">${SZ.Localization.t('form.job_vehicle_invincibility')}</span>
+                </div>
+            </label>
+            <label class="f-toggle">
+                <input type="checkbox" data-job-field="enableVehicleGhosting" ${vehicleGhosting ? 'checked' : ''} />
+                <span class="f-toggle__track"></span>
+                <div class="f-toggle__content">
+                    <span class="f-toggle__label">${SZ.Localization.t('form.job_vehicle_ghosting')}</span>
+                </div>
+            </label>
+            <label class="f-toggle">
                 <input type="checkbox" data-job-field="enableGhosting" ${ghosting ? 'checked' : ''} />
                 <span class="f-toggle__track"></span>
                 <div class="f-toggle__content">
                     <span class="f-toggle__label">${SZ.Localization.t('form.job_ghosting')}</span>
-                </div>
-            </label>
-            <label class="f-toggle">
-                <input type="checkbox" data-job-field="preventVehicleDamage" ${vehicleDamage ? 'checked' : ''} />
-                <span class="f-toggle__track"></span>
-                <div class="f-toggle__content">
-                    <span class="f-toggle__label">${SZ.Localization.t('form.job_vehicle_damage')}</span>
                 </div>
             </label>
             <label class="f-toggle">
@@ -2751,8 +2759,9 @@ function collectJobOverrides() {
                     name,
                     minGrade,
                     enableInvincibility: row.querySelector('[data-job-field="enableInvincibility"]')?.checked ?? true,
+                    enableVehicleInvincibility: row.querySelector('[data-job-field="enableVehicleInvincibility"]')?.checked ?? true,
+                    enableVehicleGhosting: row.querySelector('[data-job-field="enableVehicleGhosting"]')?.checked ?? false,
                     enableGhosting: row.querySelector('[data-job-field="enableGhosting"]')?.checked ?? true,
-                    preventVehicleDamage: row.querySelector('[data-job-field="preventVehicleDamage"]')?.checked ?? true,
                     disableVehicleWeapons: row.querySelector('[data-job-field="disableVehicleWeapons"]')?.checked ?? true,
                     disableWeapons: row.querySelector('[data-job-field="disableWeapons"]')?.checked ?? true
                 });
@@ -3184,8 +3193,9 @@ async function handleCreateZone(e) {
         }
 
         formData.enableInvincibility = document.getElementById('circle-enable-invincibility').checked;
+        formData.enableVehicleInvincibility = document.getElementById('circle-enable-vehicle-invincibility').checked;
+        formData.enableVehicleGhosting = document.getElementById('circle-enable-vehicle-ghosting').checked;
         formData.enableGhosting = document.getElementById('circle-enable-ghosting').checked;
-        formData.preventVehicleDamage = document.getElementById('circle-prevent-vehicle-damage').checked;
         formData.disableVehicleWeapons = document.getElementById('circle-disable-vehicle-weapons').checked;
         formData.collisionDisabled = document.getElementById('circle-collision-disabled').checked;
     } else {
@@ -3231,8 +3241,9 @@ async function handleCreateZone(e) {
         }
 
         formData.enableInvincibility = document.getElementById('polygon-enable-invincibility').checked;
+        formData.enableVehicleInvincibility = document.getElementById('polygon-enable-vehicle-invincibility').checked;
+        formData.enableVehicleGhosting = document.getElementById('polygon-enable-vehicle-ghosting').checked;
         formData.enableGhosting = document.getElementById('polygon-enable-ghosting').checked;
-        formData.preventVehicleDamage = document.getElementById('polygon-prevent-vehicle-damage').checked;
         formData.disableVehicleWeapons = document.getElementById('polygon-disable-vehicle-weapons').checked;
         formData.collisionDisabled = document.getElementById('polygon-collision-disabled').checked;
 
@@ -4100,9 +4111,10 @@ function handleCloneZoneAttributes() {
         circleCoverageType: zone.circleCoverageType,
         showMarker: zone.showMarker !== false,
         markerConfig: zone.markerConfig ? { ...zone.markerConfig } : null,
-        enableInvincibility: zone.enableInvincibility !== undefined ? zone.enableInvincibility : (zone.enableImmortality !== false),
+        enableInvincibility: zone.enableInvincibility !== undefined ? zone.enableInvincibility : true,
+        enableVehicleInvincibility: zone.enableVehicleInvincibility !== undefined ? zone.enableVehicleInvincibility : true,
+        enableVehicleGhosting: zone.enableVehicleGhosting !== undefined ? zone.enableVehicleGhosting : false,
         enableGhosting: zone.enableGhosting !== false,
-        preventVehicleDamage: zone.preventVehicleDamage !== false,
         disableVehicleWeapons: zone.disableVehicleWeapons !== false,
         collisionDisabled: zone.collisionDisabled === true,
         infiniteHeight: zone.infiniteHeight === true,
@@ -4199,14 +4211,16 @@ function showCreateFormWithClonedData() {
         SZ.elements.infiniteHeight.checked = clonedData.infiniteHeight;
 
         const circleInvincibility = document.getElementById('circle-enable-invincibility');
+        const circleVehicleInvincibility = document.getElementById('circle-enable-vehicle-invincibility');
+        const circleVehicleGhosting = document.getElementById('circle-enable-vehicle-ghosting');
         const circleGhosting = document.getElementById('circle-enable-ghosting');
-        const circleVehicleDamage = document.getElementById('circle-prevent-vehicle-damage');
         const circleVehicleWeapons = document.getElementById('circle-disable-vehicle-weapons');
         const circleCollision = document.getElementById('circle-collision-disabled');
 
         if (circleInvincibility) circleInvincibility.checked = clonedData.enableInvincibility;
+        if (circleVehicleInvincibility) circleVehicleInvincibility.checked = clonedData.enableVehicleInvincibility;
+        if (circleVehicleGhosting) circleVehicleGhosting.checked = clonedData.enableVehicleGhosting;
         if (circleGhosting) circleGhosting.checked = clonedData.enableGhosting;
-        if (circleVehicleDamage) circleVehicleDamage.checked = clonedData.preventVehicleDamage;
         if (circleVehicleWeapons) circleVehicleWeapons.checked = clonedData.disableVehicleWeapons;
         if (circleCollision) circleCollision.checked = clonedData.collisionDisabled;
 
@@ -4221,14 +4235,16 @@ function showCreateFormWithClonedData() {
         }
 
         const polygonInvincibility = document.getElementById('polygon-enable-invincibility');
+        const polygonVehicleInvincibility = document.getElementById('polygon-enable-vehicle-invincibility');
+        const polygonVehicleGhosting = document.getElementById('polygon-enable-vehicle-ghosting');
         const polygonGhosting = document.getElementById('polygon-enable-ghosting');
-        const polygonVehicleDamage = document.getElementById('polygon-prevent-vehicle-damage');
         const polygonVehicleWeapons = document.getElementById('polygon-disable-vehicle-weapons');
         const polygonCollision = document.getElementById('polygon-collision-disabled');
 
         if (polygonInvincibility) polygonInvincibility.checked = clonedData.enableInvincibility;
+        if (polygonVehicleInvincibility) polygonVehicleInvincibility.checked = clonedData.enableVehicleInvincibility;
+        if (polygonVehicleGhosting) polygonVehicleGhosting.checked = clonedData.enableVehicleGhosting;
         if (polygonGhosting) polygonGhosting.checked = clonedData.enableGhosting;
-        if (polygonVehicleDamage) polygonVehicleDamage.checked = clonedData.preventVehicleDamage;
         if (polygonVehicleWeapons) polygonVehicleWeapons.checked = clonedData.disableVehicleWeapons;
         if (polygonCollision) polygonCollision.checked = clonedData.collisionDisabled;
 
@@ -4554,10 +4570,11 @@ function loadZoneDataToForm(zone) {
 
         const circleInvincibilityEnabled = zone.enableInvincibility !== undefined
             ? zone.enableInvincibility !== false
-            : zone.enableImmortality !== false;
+            : true;
         document.getElementById('circle-enable-invincibility').checked = circleInvincibilityEnabled;
+        document.getElementById('circle-enable-vehicle-invincibility').checked = zone.enableVehicleInvincibility !== false;
+        document.getElementById('circle-enable-vehicle-ghosting').checked = zone.enableVehicleGhosting === true;
         document.getElementById('circle-enable-ghosting').checked = zone.enableGhosting !== false;
-        document.getElementById('circle-prevent-vehicle-damage').checked = zone.preventVehicleDamage !== false;
         document.getElementById('circle-disable-vehicle-weapons').checked = zone.disableVehicleWeapons !== false;
         document.getElementById('circle-collision-disabled').checked = zone.collisionDisabled === true;
     } else {
@@ -4585,10 +4602,11 @@ function loadZoneDataToForm(zone) {
 
         const polygonInvincibilityEnabled = zone.enableInvincibility !== undefined
             ? zone.enableInvincibility !== false
-            : zone.enableImmortality !== false;
+            : true;
         document.getElementById('polygon-enable-invincibility').checked = polygonInvincibilityEnabled;
+        document.getElementById('polygon-enable-vehicle-invincibility').checked = zone.enableVehicleInvincibility !== false;
+        document.getElementById('polygon-enable-vehicle-ghosting').checked = zone.enableVehicleGhosting === true;
         document.getElementById('polygon-enable-ghosting').checked = zone.enableGhosting !== false;
-        document.getElementById('polygon-prevent-vehicle-damage').checked = zone.preventVehicleDamage !== false;
         document.getElementById('polygon-disable-vehicle-weapons').checked = zone.disableVehicleWeapons !== false;
         document.getElementById('polygon-collision-disabled').checked = zone.collisionDisabled === true;
 
