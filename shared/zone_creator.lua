@@ -82,7 +82,7 @@ if not _is_server then
     local _flying_speeds = { base = 0.25, fast_multiplier = 3.0, slow_multiplier = 0.25 }
 
     local is_active = false
-    local current_zone, all_zones, zone_index = {}, {}, 1
+    local current_zone, zone_index = {}, 1
     local fly_speed = false
     local creator_context = nil
     local debug_preview = false
@@ -494,7 +494,6 @@ if not _is_server then
                                 poly2d[i] = vector2(current_zone[i].x, current_zone[i].y)
                             end
                             local default_name = ("zone_%d"):format(zone_index)
-                            all_zones[#all_zones + 1] = { name = default_name, coords = current_zone, poly2d = poly2d }
 
                             TriggerEvent(_res .. ":zone_created", {
                                 name = default_name,

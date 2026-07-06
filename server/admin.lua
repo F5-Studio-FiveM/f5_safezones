@@ -28,30 +28,6 @@ function IsPlayerAdmin(playerId)
     return Admin.IsPlayerAdmin(playerId)
 end
 
-RegisterNetEvent('f5_safezones:getPlayerCoords', function()
-    local src = source
-
-    if not Admin.IsPlayerAdmin(src) then
-        TriggerClientEvent('f5_safezones:showNotification', src, Translate('access_denied'),
-            'error')
-        if Logging then
-            Logging:LogAdminAction(src, 'security:denied', 'Unauthorized coordinate export request', {
-                details = {
-                    type = 'player_coords'
-                }
-            }, 'SECURITY')
-        end
-        return
-    end
-
-    local playerPed = GetPlayerPed(src)
-    local coords = GetEntityCoords(playerPed)
-
-    coords = vector3(coords.x + 0.0, coords.y + 0.0, coords.z + 0.0)
-
-    TriggerClientEvent('f5_safezones:receivePlayerCoords', src, coords)
-end)
-
 RegisterNetEvent('f5_safezones:checkDebugPermission', function(mode, enable, zoneId)
     local src = source
 

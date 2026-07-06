@@ -144,41 +144,6 @@ function Log(category, level, ...args) {
     }
 }
 
-
-function LogSeparator(label) {
-    if (!SZ.logging.enabled) return;
-    const line = '—'.repeat(40);
-    if (label) {
-        console.log(`${line} ${label} ${line}`);
-    } else {
-        console.log(line + line);
-    }
-}
-
-
-function LogBlock(category, level, header, data) {
-    const cfg = SZ.logging;
-    if (!cfg.enabled) return;
-
-    category = (category || 'GENERAL').toUpperCase();
-    level    = (level || 'info').toLowerCase();
-
-    if (cfg.categories[category] === false) return;
-    if (cfg.levels[level] === false) return;
-
-    const timestamp = new Date().toISOString();
-    const consoleFn = level === 'error' ? console.error
-                    : level === 'warn'  ? console.warn
-                    : console.log;
-
-    consoleFn(`[${timestamp}] [${category}] [${level.toUpperCase()}] === ${header} ===`);
-    if (data && typeof data === 'object') {
-        for (const [key, value] of Object.entries(data)) {
-            consoleFn(`  ${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`);
-        }
-    }
-}
-
 const DEBUG_MODES = ['all', 'inactive', 'active', 'single'];
 
 const BLIP_IMAGE_DATA = {
@@ -5934,25 +5899,6 @@ window.addEventListener('message', (event) => {
                 const notifType = data.notificationType || (data.enabled ? 'success' : 'info');
                 showNotification(SZ.Localization.t(data.localeKey), notifType);
             }
-            if (SZ.state.currentView === 'zones' && !SZ.state.isCreatingZone) {
-                renderZones();
-            }
-            break;
-
-        case 'debugStatesUpdated':
-            if (data.states !== undefined) {
-                setZoneDebugStates(data.states);
-            }
-            if (typeof data.enabled === 'boolean') {
-                SZ.state.debugEnabled = data.enabled;
-            }
-            if (typeof data.mode === 'string') {
-                SZ.state.debugMode = normalizeDebugMode(data.mode);
-            }
-            if (data.singleZoneId !== undefined) {
-                SZ.state.singleZoneId = data.singleZoneId;
-            }
-            updateDebugButtons();
             if (SZ.state.currentView === 'zones' && !SZ.state.isCreatingZone) {
                 renderZones();
             }

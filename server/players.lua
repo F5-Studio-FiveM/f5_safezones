@@ -154,7 +154,7 @@ RegisterNetEvent('f5_safezones:playerEnteredZone', function(zoneName)
     TriggerEvent('f5_safezones:playerEntered', src, zoneName)
 end)
 
-RegisterNetEvent('f5_safezones:playerExitedZone', function(zoneName)
+RegisterNetEvent('f5_safezones:playerExitedZone', function(_)
     local src = source
 
     if Server.playersInSafezones[src] then
@@ -191,15 +191,6 @@ RegisterNetEvent('f5_safezones:requestPlayersInZone', function(zoneName)
     end
 
     TriggerClientEvent('f5_safezones:receivePlayersInZone', src, playersInZone)
-end)
-
-RegisterNetEvent('f5_safezones:syncCollisionResponse', function(targetPlayer, inSafezone)
-    local src = source
-
-    if inSafezone and Server.playersInSafezones[src] and Server.playersInSafezones[targetPlayer] then
-        TriggerClientEvent('f5_safezones:applyCollisionSync', targetPlayer, src)
-        TriggerClientEvent('f5_safezones:applyCollisionSync', src, targetPlayer)
-    end
 end)
 
 AddEventHandler('playerDropped', function(reason)

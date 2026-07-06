@@ -218,7 +218,7 @@ local function sortFiles(manifest)
     return files
 end
 
-local function readEntriesFromFile(filePath, limit)
+local function readEntriesFromFile(filePath)
     local entries = {}
     local file = io.open(filePath, 'r')
     if not file then
@@ -231,10 +231,6 @@ local function readEntriesFromFile(filePath, limit)
             if ok and type(entry) == 'table' then
                 entries[#entries + 1] = entry
             end
-        end
-
-        if limit and #entries >= limit then
-            break
         end
     end
 

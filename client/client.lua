@@ -503,28 +503,8 @@ AddEventHandler('onResourceStop', function(resourceName)
     if Safezone.State.isInSafezone then
         Safezone.Collision.RestoreAllCollisions()
 
-        local myPed = PlayerPedId()
-        local myVeh = GetVehiclePedIsIn(myPed, false)
-        if myVeh == 0 then
-            myVeh = GetVehiclePedIsIn(myPed, true)
-        end
-
         local vehicles = GetGamePool('CVehicle')
-        local activePlayersForVeh = GetActivePlayers()
         for _, vehicle in ipairs(vehicles) do
-            SetEntityNoCollisionEntity(vehicle, myPed, false)
-            SetEntityNoCollisionEntity(myPed, vehicle, false)
-            if myVeh ~= 0 and myVeh ~= vehicle then
-                SetEntityNoCollisionEntity(vehicle, myVeh, false)
-                SetEntityNoCollisionEntity(myVeh, vehicle, false)
-            end
-            for _, player in ipairs(activePlayersForVeh) do
-                local otherPed = GetPlayerPed(player)
-                if otherPed ~= 0 and DoesEntityExist(otherPed) then
-                    SetEntityNoCollisionEntity(vehicle, otherPed, false)
-                    SetEntityNoCollisionEntity(otherPed, vehicle, false)
-                end
-            end
             SetEntityInvincible(vehicle, false)
             SetEntityCanBeDamaged(vehicle, true)
             SetVehicleTyresCanBurst(vehicle, true)
@@ -537,38 +517,7 @@ AddEventHandler('onResourceStop', function(resourceName)
             if player ~= PlayerId() then
                 local ped = GetPlayerPed(player)
                 if DoesEntityExist(ped) then
-                    SetEntityNoCollisionEntity(myPed, ped, false)
-                    SetEntityNoCollisionEntity(ped, myPed, false)
                     ResetEntityAlpha(ped)
-                    local theirVeh = GetVehiclePedIsIn(ped, false)
-                    if theirVeh ~= 0 and DoesEntityExist(theirVeh) then
-                        SetEntityNoCollisionEntity(myPed, theirVeh, false)
-                        SetEntityNoCollisionEntity(theirVeh, myPed, false)
-                        if myVeh ~= 0 then
-                            SetEntityNoCollisionEntity(myVeh, theirVeh, false)
-                            SetEntityNoCollisionEntity(theirVeh, myVeh, false)
-                        end
-                    end
-                end
-            end
-        end
-
-        local peds = GetGamePool('CPed')
-        for _, ped in ipairs(peds) do
-            if ped ~= myPed and DoesEntityExist(ped) then
-                SetEntityNoCollisionEntity(ped, myPed, false)
-                SetEntityNoCollisionEntity(myPed, ped, false)
-            end
-        end
-
-        local objects = GetGamePool('CObject')
-        for _, obj in ipairs(objects) do
-            if DoesEntityExist(obj) then
-                SetEntityNoCollisionEntity(obj, myPed, false)
-                SetEntityNoCollisionEntity(myPed, obj, false)
-                if myVeh ~= 0 then
-                    SetEntityNoCollisionEntity(obj, myVeh, false)
-                    SetEntityNoCollisionEntity(myVeh, obj, false)
                 end
             end
         end

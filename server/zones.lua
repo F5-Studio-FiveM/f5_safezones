@@ -4,8 +4,6 @@ local Zones = Server.Zones
 local Logging = Server.Logging
 
 Zones.stateDirty = Zones.stateDirty or false
-Zones.idCounter = 0
-Zones.idLookup = {}
 
 local function tableCount(tbl)
     if type(tbl) ~= 'table' then
@@ -342,7 +340,6 @@ end
 function Zones.GetAllZones()
     local allZones = {}
     local currentId = 1
-    Zones.idLookup = {}
 
     for i, zone in ipairs(Config.Safezones) do
         local zoneCopy = {}
@@ -382,7 +379,6 @@ function Zones.GetAllZones()
             }
         end
 
-        Zones.idLookup[currentId] = zoneCopy
         table.insert(allZones, zoneCopy)
         currentId = currentId + 1
     end
@@ -422,24 +418,15 @@ function Zones.GetAllZones()
                 tonumber(zoneCopy.blipCoords.y) or 0.0, tonumber(zoneCopy.blipCoords.z) or 0.0)
         end
 
-        Zones.idLookup[currentId] = zoneCopy
         table.insert(allZones, zoneCopy)
         currentId = currentId + 1
     end
-
-    Zones.idCounter = currentId - 1
 
     if Zones.stateDirty then
         Zones.SaveZoneStates()
     end
 
     return allZones
-end
-
-function Zones.GetZoneById(id)
-    local numId = tonumber(id)
-    if not numId then return nil end
-    return Zones.idLookup[numId]
 end
 
 RegisterNetEvent('f5_safezones:requestZoneUpdate', function()

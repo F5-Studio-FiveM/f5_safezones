@@ -56,8 +56,6 @@ local function CalculatePolygonBounds(points)
         maxX = maxX,
         minY = minY,
         maxY = maxY,
-        width = maxX - minX,
-        height = maxY - minY,
         centerX = (minX + maxX) / 2,
         centerY = (minY + maxY) / 2
     }
@@ -339,7 +337,6 @@ end
 local function ProcessZoneCollection(sourceZones)
     local processed = {}
     local lookup = {}
-    local boundsCache = {}
     local count = 0
 
     for i = 1, #sourceZones do
@@ -350,18 +347,15 @@ local function ProcessZoneCollection(sourceZones)
 
             if processedZone.name then
                 lookup[processedZone.name] = processedZone
-                if processedZone.type == 'polygon' and processedZone.bounds then
-                    boundsCache[processedZone.name] = processedZone.bounds
-                end
             end
         end
     end
 
-    return processed, lookup, boundsCache, count
+    return processed, lookup, count
 end
 
 local function ProcessZones()
-    local processed, lookup, _, count = ProcessZoneCollection(currentZones)
+    local processed, lookup, count = ProcessZoneCollection(currentZones)
 
     processedZones = processed
     processedZoneLookup = lookup
@@ -1025,7 +1019,7 @@ local function CalculateMarkerEffects(markerConfig, currentTime)
     return effects
 end
 
-local function DrawEnhancedCircleMarker(zone, markerData, currentTime)
+local function DrawEnhancedCircleMarker(zone, _, currentTime)
     local coords = zone.coords
     local markerConfig = zone.markerConfig
     local effects = CalculateMarkerEffects(markerConfig, currentTime)

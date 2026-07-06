@@ -508,13 +508,6 @@ RegisterNUICallback('getPlayerCoords', function(_, cb)
     cb('ok')
 end)
 
-RegisterNetEvent('f5_safezones:receivePlayerCoords', function(coords)
-    SendNUIMessage({
-        action = 'receivePlayerCoords',
-        coords = coords
-    })
-end)
-
 RegisterNetEvent('f5_safezones:polygonCreatorFinished', function(points)
     if type(points) ~= 'table' or #points < 3 then
         Safezone.ShowNotification(Translate('polygon_creator_invalid'), 'error')

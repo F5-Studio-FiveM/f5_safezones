@@ -160,37 +160,30 @@ Config.Commands = {
     szcoords = {
         name = 'szcoords',
         active = true,
-        description = 'Get current coordinates'
     },
     szdebug = {
         name = 'szdebug',
         active = true,
-        description = 'Toggle debug mode'
     },
     szadmin = {
         name = 'szadmin',
         active = true,
-        description = 'Open admin panel'
     },
     sztoggle = {
         name = 'sztoggle',
         active = true,
-        description = 'Toggle zone marker'
     },
     debugrender = {
         name = 'debugrender',
         active = true,
-        description = 'Toggle render distance debug'
     },
     setrenderdist = {
         name = 'setrenderdist',
         active = true,
-        description = 'Set zone render distance'
     },
     listsafezones = {
         name = 'listsafezones',
         active = true,
-        description = 'List all safezones'
     }
 }
 
@@ -228,9 +221,6 @@ Config.Logging = {
 
     -- UI display settings
     ui = {
-        showAdminName = true,
-        showIdentifiers = true,
-        dateFormat = 'DD/MM/YYYY HH:mm:ss'
     }
 }
 

@@ -8,13 +8,6 @@ Server.zoneSaveTimer = Server.zoneSaveTimer or nil
 Server.Paths = Server.Paths or {}
 Server.Paths.zonesFile = Server.Paths.zonesFile or (GetResourcePath(GetCurrentResourceName()) .. '/data/zones.json')
 Server.Paths.zoneStateFile = Server.Paths.zoneStateFile or (GetResourcePath(GetCurrentResourceName()) .. '/data/zone_states.json')
-Server.Modules = Server.Modules or {}
-
-local function markModuleReady(name)
-    Server.Modules[name] = true
-end
-
-markModuleReady('core')
 
 local function waitForModuleReady(checkFn)
     while not checkFn() do
