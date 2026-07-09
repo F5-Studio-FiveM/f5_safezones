@@ -74,6 +74,22 @@ function Safezone.IsZoneVehicleGhostingEnabled(zone)
     return false
 end
 
+function Safezone.IsZoneGhostingEnabled(zone)
+    if not zone then
+        return false
+    end
+
+    return zone.enableGhosting == true
+end
+
+function Safezone.IsZoneCollisionDisabled(zone)
+    if not zone then
+        return false
+    end
+
+    return zone.collisionDisabled ~= false
+end
+
 function Safezone.UpdatePlayerCache()
     Safezone.Player.ped = PlayerPedId()
     Safezone.Player.coords = GetEntityCoords(Safezone.Player.ped)
@@ -220,7 +236,7 @@ function Safezone.StartSafezoneLoop()
                     Safezone.EnterSafezone(foundZone)
                 elseif foundZone and Safezone.State.isInSafezone and Safezone.State.currentSafezone and foundZone ~= (Safezone.State.currentSafezone._originalZone or Safezone.State.currentSafezone) then
                     local currentOriginal = Safezone.State.currentSafezone._originalZone or Safezone.State.currentSafezone
-                    if (foundZone.collisionDisabled == true) ~= (currentOriginal.collisionDisabled == true) then
+                    if Safezone.IsZoneCollisionDisabled(foundZone) ~= Safezone.IsZoneCollisionDisabled(currentOriginal) then
                         Safezone.ExitSafezone()
                         Wait(100)
                         Safezone.EnterSafezone(foundZone)
@@ -247,10 +263,10 @@ function Safezone.EnterSafezone(zone)
     Safezone.UpdatePlayerCache()
     Safezone.Collision.StoreOriginalAlpha()
 
-    if zone.enableGhosting ~= false then
+    if Safezone.IsZoneGhostingEnabled(zone) then
         SetEntityAlpha(Safezone.Player.ped, Config.CollisionSystem.playerAlpha or 200, false)
     else
-        SetEntityAlpha(Safezone.Player.ped, 255, false)
+        ResetEntityAlpha(Safezone.Player.ped)
     end
 
     if Safezone.IsZoneInvincibilityEnabled(zone) then
@@ -433,12 +449,14 @@ end)
 
 RegisterNetEvent('f5_safezones:receivePlayersInZone', function(playerList)
     if Safezone.State.isInSafezone and Safezone.State.currentSafezone then
+        Safezone.Collision.SetZoneMembers(playerList)
         Safezone.Collision.UpdatePlayersInZone()
     end
 end)
 
-RegisterNetEvent('f5_safezones:playerEnteredSameZone', function()
-    if Safezone.State.isInSafezone and Safezone.State.currentSafezone and Safezone.State.currentSafezone.enableGhosting ~= false then
+RegisterNetEvent('f5_safezones:playerEnteredSameZone', function(serverId)
+    if Safezone.State.isInSafezone and Safezone.State.currentSafezone then
+        Safezone.Collision.AddZoneMember(serverId)
         Safezone.Collision.UpdatePlayersInZone()
     end
 end)
@@ -471,13 +489,13 @@ end)
 AddEventHandler('f5_safezones:onJobUpdate', function()
     if Safezone.State.isInSafezone and Safezone.State.currentSafezone then
         local originalZone = Safezone.State.currentSafezone._originalZone or Safezone.State.currentSafezone
-        local previousGhosting = Safezone.State.currentSafezone.enableGhosting
+        local previousGhosting = Safezone.IsZoneGhostingEnabled(Safezone.State.currentSafezone)
         Safezone.State.currentSafezone = applyJobOverrides(originalZone)
-        local newGhosting = Safezone.State.currentSafezone.enableGhosting
+        local newGhosting = Safezone.IsZoneGhostingEnabled(Safezone.State.currentSafezone)
 
         if previousGhosting ~= newGhosting then
             Safezone.UpdatePlayerCache()
-            if newGhosting ~= false then
+            if newGhosting then
                 SetEntityAlpha(Safezone.Player.ped, Config.CollisionSystem.playerAlpha or 200, false)
             else
                 ResetEntityAlpha(Safezone.Player.ped)
@@ -488,6 +506,7 @@ end)
 
 RegisterNetEvent('f5_safezones:playerLeftSameZone', function(serverId)
     if Safezone.State.isInSafezone then
+        Safezone.Collision.RemoveZoneMember(serverId)
         Safezone.Collision.RemovePlayerGhosting(serverId)
         Safezone.Collision.UpdatePlayersInZone()
     end
@@ -543,7 +562,7 @@ exports('GetAllZones', function()
 end)
 
 exports('IsPlayerInGhostMode', function()
-    return Safezone.State.isInSafezone and Safezone.State.currentSafezone and Safezone.State.currentSafezone.enableGhosting ~= false
+    return Safezone.State.isInSafezone and Safezone.State.currentSafezone and Safezone.IsZoneCollisionDisabled(Safezone.State.currentSafezone)
 end)
 
 exports('GetPerformanceStats', function()

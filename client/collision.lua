@@ -9,13 +9,13 @@ local COLLISION_RANGE = Config.CollisionSystem.range or 100.0
 local COLLISION_RANGE_SQUARED = COLLISION_RANGE * COLLISION_RANGE
 local vehicleWeaponsDisabled = {}
 local ghostedVehicles = {}
-local ghostedEntities = {}
 local processedEntities = {}
 local playersInZone = {}
 local ghostedPlayers = {}
 local vehiclesInZone = {}
+local zoneMemberIds = {}
 local lastVehicleZoneUpdate = 0
-local VEHICLE_ZONE_UPDATE_INTERVAL = Config.Performance.updateIntervals.collisionCheck or 450
+local VEHICLE_ZONE_UPDATE_INTERVAL = 200
 local lastVehicleEnforce = 0
 local VEHICLE_ENFORCE_INTERVAL = Config.Performance.updateIntervals.vehicleEnforce or 50
 local lastPlayerUpdate = 0
@@ -42,7 +42,7 @@ local function SetEntityAlphaIfNeeded(entity, alpha, storage, storageKey)
     end
 end
 
-local function ApplyPlayerGhosting(playerPed, serverId)
+local function ApplyPlayerAlpha(playerPed, serverId, alpha)
     if not DoesEntityExist(playerPed) or playerPed == Safezone.Player.ped then
         return
     end
@@ -50,58 +50,43 @@ local function ApplyPlayerGhosting(playerPed, serverId)
     if not ghostedPlayers[serverId] then
         ghostedPlayers[serverId] = {
             ped = playerPed,
-            originalAlpha = GetEntityAlpha(playerPed) == 0 and 255 or GetEntityAlpha(playerPed),
-            originalVehicleAlpha = nil,
-            currentAlpha = nil,
-            currentVehicleAlpha = nil
+            currentAlpha = nil
         }
     else
         ghostedPlayers[serverId].ped = playerPed
     end
 
-    local desiredAlpha = Config.CollisionSystem.playerAlpha or 200
-    SetEntityAlphaIfNeeded(playerPed, desiredAlpha, ghostedPlayers, serverId)
-    SetEntityNoCollisionEntity(Safezone.Player.ped, playerPed, true)
-    SetEntityNoCollisionEntity(playerPed, Safezone.Player.ped, true)
-
-    local vehicle = GetVehiclePedIsIn(playerPed, false)
-    if vehicle ~= 0 and DoesEntityExist(vehicle) then
-        SetEntityNoCollisionEntity(Safezone.Player.ped, vehicle, true)
-        SetEntityNoCollisionEntity(vehicle, Safezone.Player.ped, true)
-
-        local myVehicle = GetVehiclePedIsIn(Safezone.Player.ped, false)
-        if myVehicle ~= 0 then
-            SetEntityNoCollisionEntity(myVehicle, vehicle, true)
-            SetEntityNoCollisionEntity(vehicle, myVehicle, true)
-            SetEntityNoCollisionEntity(myVehicle, playerPed, true)
-            SetEntityNoCollisionEntity(playerPed, myVehicle, true)
-        end
-    end
+    SetEntityAlphaIfNeeded(playerPed, alpha, ghostedPlayers, serverId)
 end
 
 function Collision.RemovePlayerGhosting(serverId)
     if ghostedPlayers[serverId] then
-        local data = ghostedPlayers[serverId]
-        local playerPed = data.ped
-
+        local playerPed = ghostedPlayers[serverId].ped
         if DoesEntityExist(playerPed) then
-            if data.originalAlpha then
-                SetEntityAlpha(playerPed, data.originalAlpha, false)
-            else
-                ResetEntityAlpha(playerPed)
-            end
-
-            local vehicle = GetVehiclePedIsIn(playerPed, false)
-            if vehicle ~= 0 and DoesEntityExist(vehicle) then
-                if data.originalVehicleAlpha then
-                    SetEntityAlpha(vehicle, data.originalVehicleAlpha, false)
-                else
-                    ResetEntityAlpha(vehicle)
-                end
-            end
+            ResetEntityAlpha(playerPed)
         end
-
         ghostedPlayers[serverId] = nil
+    end
+end
+
+function Collision.SetZoneMembers(list)
+    zoneMemberIds = {}
+    if type(list) == 'table' then
+        for _, serverId in ipairs(list) do
+            zoneMemberIds[serverId] = true
+        end
+    end
+end
+
+function Collision.AddZoneMember(serverId)
+    if serverId then
+        zoneMemberIds[serverId] = true
+    end
+end
+
+function Collision.RemoveZoneMember(serverId)
+    if serverId then
+        zoneMemberIds[serverId] = nil
     end
 end
 
@@ -134,44 +119,37 @@ local function IsCoordsInCurrentZone(coords)
     return false
 end
 
-local function IsPlayerInCurrentZone(playerPed)
-    if not DoesEntityExist(playerPed) then
-        return false
-    end
-    return IsCoordsInCurrentZone(GetEntityCoords(playerPed))
-end
-
 function Collision.UpdatePlayersInZone()
     if not Safezone.State.isInSafezone or not Safezone.State.currentSafezone then
         return
     end
 
-    local activePlayers = GetActivePlayers()
+    local ghost = Safezone.IsZoneGhostingEnabled(Safezone.State.currentSafezone)
+    local desiredAlpha = Config.CollisionSystem.playerAlpha or 200
     local newPlayersInZone = {}
     local ghostedCount = 0
 
-    for _, player in ipairs(activePlayers) do
-        if player ~= PlayerId() then
+    for serverId in pairs(zoneMemberIds) do
+        local player = GetPlayerFromServerId(serverId)
+        if player ~= -1 then
             local playerPed = GetPlayerPed(player)
-            local serverId = GetPlayerServerId(player)
+            if playerPed and playerPed ~= 0 and DoesEntityExist(playerPed) and playerPed ~= Safezone.Player.ped then
+                newPlayersInZone[serverId] = {
+                    ped = playerPed,
+                    player = player
+                }
 
-            if DoesEntityExist(playerPed) and serverId then
-                if IsPlayerInCurrentZone(playerPed) then
-                    newPlayersInZone[serverId] = {
-                        ped = playerPed,
-                        player = player
-                    }
-
-                    if Safezone.State.currentSafezone.enableGhosting ~= false then
-                        ApplyPlayerGhosting(playerPed, serverId)
-                        ghostedCount = ghostedCount + 1
-                    end
+                if ghost then
+                    ApplyPlayerAlpha(playerPed, serverId, desiredAlpha)
+                    ghostedCount = ghostedCount + 1
+                elseif ghostedPlayers[serverId] then
+                    Collision.RemovePlayerGhosting(serverId)
                 end
             end
         end
     end
 
-    for serverId, _ in pairs(ghostedPlayers) do
+    for serverId in pairs(ghostedPlayers) do
         if not newPlayersInZone[serverId] then
             Collision.RemovePlayerGhosting(serverId)
         end
@@ -216,8 +194,7 @@ function Collision.EnforceVehiclesInZone()
     local zone = Safezone.State.currentSafezone
     local invincible = Safezone.IsZoneVehicleInvincibilityEnabled(zone)
     local ghost = Safezone.IsZoneVehicleGhostingEnabled(zone)
-    local ped = Safezone.Player.ped
-    local myVeh = GetVehiclePedIsIn(ped, false)
+    local noCollision = Safezone.IsZoneCollisionDisabled(zone)
     local desiredAlpha = Config.CollisionSystem.vehicleAlpha or 200
 
     local activeList = {}
@@ -248,30 +225,17 @@ function Collision.EnforceVehiclesInZone()
                 data.currentAlpha = nil
             end
 
-            if vehicle ~= myVeh then
-                SetEntityNoCollisionEntity(vehicle, ped, true)
-                SetEntityNoCollisionEntity(ped, vehicle, true)
-            end
-            if myVeh ~= 0 and myVeh ~= vehicle then
-                SetEntityNoCollisionEntity(vehicle, myVeh, true)
-                SetEntityNoCollisionEntity(myVeh, vehicle, true)
-            end
-
-            for _, playerData in pairs(playersInZone) do
-                if DoesEntityExist(playerData.ped) then
-                    SetEntityNoCollisionEntity(vehicle, playerData.ped, true)
-                    SetEntityNoCollisionEntity(playerData.ped, vehicle, true)
-                end
-            end
         else
             vehiclesInZone[vehicle] = nil
         end
     end
 
-    for i = 1, #activeList do
-        for j = i + 1, #activeList do
-            SetEntityNoCollisionEntity(activeList[i], activeList[j], true)
-            SetEntityNoCollisionEntity(activeList[j], activeList[i], true)
+    if noCollision then
+        for i = 1, #activeList do
+            for j = i + 1, #activeList do
+                SetEntityNoCollisionEntity(activeList[i], activeList[j], true)
+                SetEntityNoCollisionEntity(activeList[j], activeList[i], true)
+            end
         end
     end
 end
@@ -292,7 +256,7 @@ function Collision.UpdateVehiclesInZone()
     end
 
     local toRemove = {}
-    for vehicle, _ in pairs(vehiclesInZone) do
+    for vehicle in pairs(vehiclesInZone) do
         if not newVehicles[vehicle] then
             toRemove[#toRemove + 1] = vehicle
         end
@@ -309,6 +273,7 @@ local function UpdateCollisionEntities()
     collisionEntities = {}
     local vehicleCount = 0
     local playerCoords = Safezone.Player.coords
+    local disableVehWeapons = Safezone.State.currentSafezone and Safezone.State.currentSafezone.disableVehicleWeapons ~= false
 
     local vehicles = GetGamePool('CVehicle')
 
@@ -317,49 +282,13 @@ local function UpdateCollisionEntities()
         local distanceSquared = Zones.GetDistanceSquared(playerCoords, vehicleCoords)
 
         if distanceSquared <= COLLISION_RANGE_SQUARED then
-            local isPlayerVehicle = false
-            for _, playerData in pairs(playersInZone) do
-                if GetVehiclePedIsIn(playerData.ped, false) == vehicle then
-                    isPlayerVehicle = true
-                    break
-                end
-            end
+            vehicleCount = vehicleCount + 1
+            collisionEntities[vehicle] = { coords = vehicleCoords }
+            processedEntities[vehicle] = true
 
-            if not isPlayerVehicle then
-                vehicleCount = vehicleCount + 1
-                collisionEntities[vehicle] = {
-                    coords = vehicleCoords,
-                    model = GetEntityModel(vehicle),
-                    driver = GetPedInVehicleSeat(vehicle, -1),
-                    hasWeapons = DoesVehicleHaveWeapons(vehicle),
-                    originalAlpha = GetEntityAlpha(vehicle) == 0 and 255 or GetEntityAlpha(vehicle)
-                }
-
-                processedEntities[vehicle] = true
-
-                if collisionEntities[vehicle].hasWeapons and (Safezone.State.currentSafezone and Safezone.State.currentSafezone.disableVehicleWeapons ~= false) then
-                    SetVehicleWeaponsDisabled(vehicle, true)
-                    vehicleWeaponsDisabled[vehicle] = true
-                end
-            end
-        end
-    end
-
-    local peds = GetGamePool('CPed')
-
-    for _, ped in ipairs(peds) do
-        if ped ~= Safezone.Player.ped and not IsPedAPlayer(ped) then
-            local pedCoords = GetEntityCoords(ped)
-            local distanceSquared = Zones.GetDistanceSquared(playerCoords, pedCoords)
-
-            if distanceSquared <= COLLISION_RANGE_SQUARED then
-                collisionEntities[ped] = {
-                    coords = pedCoords,
-                    isPed = true,
-                    originalAlpha = GetEntityAlpha(ped) == 0 and 255 or GetEntityAlpha(ped)
-                }
-
-                processedEntities[ped] = true
+            if disableVehWeapons and DoesVehicleHaveWeapons(vehicle) then
+                SetVehicleWeaponsDisabled(vehicle, true)
+                vehicleWeaponsDisabled[vehicle] = true
             end
         end
     end
@@ -369,60 +298,17 @@ local function UpdateCollisionEntities()
     lastCollisionUpdate = GetGameTimer()
 end
 
-local function DisableCollisionWithEntity(entity, data)
-    if not DoesEntityExist(entity) then
-        return
-    end
-
-    if GetEntityType(entity) == 2 then
-        SetEntityNoCollisionEntity(entity, Safezone.Player.ped, true)
-        SetEntityNoCollisionEntity(Safezone.Player.ped, entity, true)
-
-        local myVehicle = GetVehiclePedIsIn(Safezone.Player.ped, false)
-        if myVehicle ~= 0 and myVehicle ~= entity then
-            SetEntityNoCollisionEntity(entity, myVehicle, true)
-            SetEntityNoCollisionEntity(myVehicle, entity, true)
-        end
-
-        ghostedEntities[entity] = ghostedEntities[entity] or {
-            originalAlpha = data and data.originalAlpha,
-            currentAlpha = nil
-        }
-        SetEntityAlphaIfNeeded(entity, Config.CollisionSystem.vehicleAlpha or 200, ghostedEntities, entity)
-        ghostedVehicles[entity] = true
-    elseif GetEntityType(entity) == 1 and entity ~= Safezone.Player.ped then
-        SetEntityNoCollisionEntity(entity, Safezone.Player.ped, true)
-        SetEntityNoCollisionEntity(Safezone.Player.ped, entity, true)
-        ghostedEntities[entity] = ghostedEntities[entity] or {
-            originalAlpha = data and data.originalAlpha,
-            currentAlpha = nil
-        }
-    end
-end
-
 function Collision.RestoreAllCollisions()
     Safezone.UpdatePlayerCache()
     local ped = Safezone.Player.ped
 
-    for serverId, _ in pairs(ghostedPlayers) do
+    for serverId in pairs(ghostedPlayers) do
         Collision.RemovePlayerGhosting(serverId)
     end
     playersInZone = {}
+    zoneMemberIds = {}
 
-    for entity, ghostData in pairs(ghostedEntities) do
-        if DoesEntityExist(entity) then
-            if ghostData.originalAlpha then
-                SetEntityAlpha(entity, ghostData.originalAlpha, false)
-            else
-                ResetEntityAlpha(entity)
-            end
-            if GetEntityType(entity) == 2 and vehicleWeaponsDisabled[entity] then
-                SetVehicleWeaponsDisabled(entity, false)
-            end
-        end
-    end
-
-    for entity, _ in pairs(processedEntities) do
+    for entity in pairs(processedEntities) do
         if DoesEntityExist(entity) then
             ResetEntityAlpha(entity)
             if GetEntityType(entity) == 2 then
@@ -454,7 +340,6 @@ function Collision.RestoreAllCollisions()
     collisionEntities = {}
     vehicleWeaponsDisabled = {}
     ghostedVehicles = {}
-    ghostedEntities = {}
     processedEntities = {}
     ghostedPlayers = {}
     playersInZone = {}
@@ -472,17 +357,14 @@ function Collision.StartCollisionSystem()
         local zone = Safezone.State.currentSafezone
         if not zone then return end
 
-        local isFullGhost = zone.collisionDisabled == true
-        local initialPlayerGhosting = zone.enableGhosting ~= false
-
-        if isFullGhost or initialPlayerGhosting then
+        if Safezone.IsZoneCollisionDisabled(zone) or Safezone.IsZoneGhostingEnabled(zone) then
             Safezone.ShowNotification(Translate('collision_mode_active'), 'primary')
         end
 
         local cacheRefreshInterval = Config.Performance.updateIntervals.playerCache or 600
         local alphaEnforceInterval = 250
         local movementResetInterval = 250
-        local waitInterval = 5
+        local waitInterval = 0
 
         local lastCacheRefresh = 0
         local lastAlphaEnforce = 0
@@ -493,8 +375,10 @@ function Collision.StartCollisionSystem()
         while Safezone.State.isInSafezone do
             local currentTime = GetGameTimer()
             local ped = PlayerPedId()
+            local myVeh = GetVehiclePedIsIn(ped, false)
             local liveZone = Safezone.State.currentSafezone
-            local isPlayerGhosting = liveZone and liveZone.enableGhosting ~= false
+            local isPlayerGhosting = Safezone.IsZoneGhostingEnabled(liveZone)
+            local noCollision = Safezone.IsZoneCollisionDisabled(liveZone)
 
             if currentTime - lastCacheRefresh >= cacheRefreshInterval then
                 Safezone.UpdatePlayerCache()
@@ -518,80 +402,57 @@ function Collision.StartCollisionSystem()
                 Collision.EnforceVehiclesInZone()
             end
 
-            if isPlayerGhosting or isFullGhost then
-                local enforceAlpha = false
-                if currentTime - lastAlphaEnforce >= alphaEnforceInterval then
-                    lastAlphaEnforce = currentTime
-                    enforceAlpha = true
-                    if isPlayerGhosting then
-                        SetEntityAlphaIfNeeded(ped, desiredPlayerAlpha)
-                    end
-                end
+            local enforceAlpha = false
+            if currentTime - lastAlphaEnforce >= alphaEnforceInterval then
+                lastAlphaEnforce = currentTime
+                enforceAlpha = true
+            end
 
-                for serverId, playerData in pairs(playersInZone) do
-                    if DoesEntityExist(playerData.ped) then
-                        if enforceAlpha then
-                            SetEntityAlphaIfNeeded(playerData.ped, desiredPlayerAlpha, ghostedPlayers, serverId)
-                        end
-                        SetEntityNoCollisionEntity(ped, playerData.ped, true)
-                        SetEntityNoCollisionEntity(playerData.ped, ped, true)
-                    end
+            if enforceAlpha then
+                if isPlayerGhosting then
+                    SetEntityAlphaIfNeeded(ped, desiredPlayerAlpha)
+                elseif GetEntityAlpha(ped) ~= 255 then
+                    ResetEntityAlpha(ped)
                 end
-            else
-                local enforceAlpha = false
-                if currentTime - lastAlphaEnforce >= alphaEnforceInterval then
-                    lastAlphaEnforce = currentTime
-                    enforceAlpha = true
-                    SetEntityAlphaIfNeeded(ped, 255)
-                end
+            end
 
-                for serverId, playerData in pairs(playersInZone) do
-                    if DoesEntityExist(playerData.ped) then
-                        if enforceAlpha then
-                            SetEntityAlphaIfNeeded(playerData.ped, 255, ghostedPlayers, serverId)
+            for serverId, playerData in pairs(playersInZone) do
+                local otherPed = playerData.ped
+                if DoesEntityExist(otherPed) then
+                    if enforceAlpha and isPlayerGhosting then
+                        SetEntityAlphaIfNeeded(otherPed, desiredPlayerAlpha, ghostedPlayers, serverId)
+                    end
+
+                    if noCollision then
+                        SetEntityNoCollisionEntity(ped, otherPed, true)
+                        SetEntityNoCollisionEntity(otherPed, ped, true)
+                        if myVeh ~= 0 then
+                            SetEntityNoCollisionEntity(myVeh, otherPed, true)
+                            SetEntityNoCollisionEntity(otherPed, myVeh, true)
                         end
                     end
                 end
             end
 
-            for entity, data in pairs(collisionEntities) do
-                if DoesEntityExist(entity) then
-                    if isFullGhost then
-                        DisableCollisionWithEntity(entity, data)
-
-                        if GetEntityType(entity) == 2 then
-                            local vehicleCoords = GetEntityCoords(entity)
-                            local distance = #(Safezone.Player.coords - vehicleCoords)
-                            if distance < 5.0 then
-                                SetEntityAlphaIfNeeded(entity, 150, ghostedEntities, entity)
-                            end
+            if noCollision then
+                for vehicle in pairs(vehiclesInZone) do
+                    if DoesEntityExist(vehicle) and vehicle ~= myVeh then
+                        SetEntityNoCollisionEntity(ped, vehicle, true)
+                        SetEntityNoCollisionEntity(vehicle, ped, true)
+                        if myVeh ~= 0 then
+                            SetEntityNoCollisionEntity(myVeh, vehicle, true)
+                            SetEntityNoCollisionEntity(vehicle, myVeh, true)
                         end
                     end
-                else
+                end
+            end
+
+            for entity in pairs(collisionEntities) do
+                if not DoesEntityExist(entity) then
                     collisionEntities[entity] = nil
                     ghostedVehicles[entity] = nil
                     vehicleWeaponsDisabled[entity] = nil
-                    ghostedEntities[entity] = nil
                     processedEntities[entity] = nil
-                end
-            end
-
-            if isFullGhost then
-                local myVeh = GetVehiclePedIsIn(ped, false)
-                local objects = GetGamePool('CObject')
-                for _, obj in ipairs(objects) do
-                    if DoesEntityExist(obj) and not IsEntityAttachedToEntity(ped, obj) then
-                        local objCoords = GetEntityCoords(obj)
-                        local dist = #(Safezone.Player.coords - objCoords)
-                        if dist < COLLISION_RANGE then
-                            SetEntityNoCollisionEntity(ped, obj, true)
-                            SetEntityNoCollisionEntity(obj, ped, true)
-                            if myVeh ~= 0 then
-                                SetEntityNoCollisionEntity(myVeh, obj, true)
-                                SetEntityNoCollisionEntity(obj, myVeh, true)
-                            end
-                        end
-                    end
                 end
             end
 
@@ -615,11 +476,11 @@ function Collision.Clear()
     collisionEntities = {}
     vehicleWeaponsDisabled = {}
     ghostedVehicles = {}
-    ghostedEntities = {}
     processedEntities = {}
     ghostedPlayers = {}
     playersInZone = {}
     vehiclesInZone = {}
+    zoneMemberIds = {}
     lastVehicleZoneUpdate = 0
     lastVehicleEnforce = 0
     lastCollisionUpdate = 0

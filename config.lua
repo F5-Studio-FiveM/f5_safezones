@@ -76,9 +76,9 @@ Config.Performance = {
     updateIntervals = {
         playerCache = 600, -- Update player position cache
         markerList = 1000, -- Update which markers to render
-        collisionCheck = 450, -- Update collision entities (also: how often vehicles entering/leaving a zone are detected)
+        collisionCheck = 450, -- How often (ms) nearby vehicles are scanned for vehicle-weapon disabling (in-zone vehicle detection for pass-through uses a fixed 200ms scan)
         weaponCheck = 250, -- Check if player switched weapons
-        vehicleEnforce = 50, -- How often (ms) in-zone vehicle protection is re-applied: invincibility + transparency (ghost) + pass-through collision
+        vehicleEnforce = 50, -- How often (ms) in-zone vehicle invincibility + transparency are re-applied (pass-through no-collision is re-applied every frame, not on this interval)
         vehicleProtection = 1000 -- Refresh interval (ms) for disabling weapons on the player's OWN vehicle (unrelated to vehicleEnforce above)
     }
 }
@@ -95,13 +95,13 @@ Config.Safezones = {
         showBlip = true,
         showMarker = true,
         blipName = "Safe Zone - Legion Square",
-        -- Collision system options (all default to true if not specified)
-        enableInvincibility = true, -- Make players invincible inside the zone
-        enableVehicleInvincibility = true,
-        enableGhosting = true, -- Enable player/vehicle ghosting
-        enableVehicleGhosting = false,
-        disableVehicleWeapons = true, -- Disable vehicle-mounted weapons
-        collisionDisabled = false, -- Set to true to completely disable collision system for this zone
+        -- Collision system options
+        enableInvincibility = true, -- Protect players from damage/death (default true)
+        enableVehicleInvincibility = true, -- Protect vehicles from damage (default true)
+        enableGhosting = false, -- Player transparency only, no collision effect (default false)
+        enableVehicleGhosting = false, -- Vehicle transparency only, no collision effect (default false)
+        disableVehicleWeapons = true, -- Disable vehicle-mounted weapons (default true)
+        collisionDisabled = true, -- Disable player<->player / player<->vehicle / vehicle<->vehicle collision among zone members; never affects world/props (default true)
         -- Render distance configuration
         renderDistance = 50.0 -- Distance from zone center to render the marker
     } 
